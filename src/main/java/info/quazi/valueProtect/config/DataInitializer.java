@@ -4,6 +4,8 @@ import info.quazi.valueProtect.entity.Role;
 import info.quazi.valueProtect.entity.User;
 import info.quazi.valueProtect.repository.RoleRepository;
 import info.quazi.valueProtect.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,8 @@ import java.util.Set;
 @Component
 public class DataInitializer implements CommandLineRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+    
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -27,25 +31,46 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        Role adminRole = findOrCreateRole("ADMIN");
-        Role userRole = findOrCreateRole("USER");
-
-        Optional<User> existingAdmin = userRepository.findByUserName("admin");
-
-        if (existingAdmin.isEmpty()) {
-            User admin = new User();
-            admin.setUserName("admin");
-            admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setEmail("admin@valueprotect.com");
-            admin.setEnabled(true);
-            admin.setArchived(false);
+        try {
+            log.info("Starting data initialization...");
             
-            Set<Role> roles = new HashSet<>();
-            roles.add(adminRole);
-            roles.add(userRole);
-            admin.setRoles(roles);
+            Role adminRole = findOrCreateRole("ADMIN");
+            Role userRole = findOrCreateRole("USER");
+
+            Optional<User> existingAdmin = userRepository.findByUserNameWithRoles("admin");
+
+            if (existingAdmin.isEmpty()) {
+                log.info("Admin user not found. Creating new admin user...");
+                User admin = new User();
+                admin.setUserName("admin");
+                admin.setPassword(passwordEncoder.encode("Heartcore123!"));
+                admin.setEmail("admin@valueprotect.com");
+                admin.setEnabled(true);
+                admin.setArchived(false);
+                
+                Set<Role> roles = new HashSet<>();
+                roles.add(adminRole);
+                roles.add(userRole);
+                admin.setRoles(roles);
+                
+                userRepository.save(admin);
+                log.info("Admin user created successfully with username: admin");
+            } else {
+                log.info("Admin user already exists with username: admin");
+                // Update password if needed
+                User admin = existingAdmin.get();
+                String newPasswordEncoded = passwordEncoder.encode("Heartcore123!");
+                
+                // Always update to ensure password is current
+                admin.setPassword(newPasswordEncoded);
+                userRepository.save(admin);
+                log.info("Admin user password has been updated");
+            }
             
-            userRepository.save(admin);
+            log.info("Data initialization completed");
+        } catch (Exception e) {
+            log.error("Error during data initialization", e);
+            throw e;
         }
     }
 
