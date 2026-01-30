@@ -15,7 +15,7 @@ public class Role extends BaseEntity {
     @Column(name = "created_by_user_id")
     private Long createdByUserId;
 
-    @ManyToMany(mappedBy = "roles")
+    @ManyToMany(mappedBy = "roles", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<User> users = new HashSet<>();
 
     public String getName() {
