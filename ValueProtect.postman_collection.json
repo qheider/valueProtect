@@ -44,7 +44,7 @@
 					"response": []
 				},
 				{
-					"name": "Create New Employee",
+					"name": "Create Employee with New User Account",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -56,7 +56,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"contactDetailsCity\": \"New York\",\n  \"contactDetailsPhone\": \"123-456-7890\",\n  \"contactDetailsSecondaryPhone\": \"098-765-4321\",\n  \"employeeNumber\": \"EMP001\",\n  \"employeeType\": 1,\n  \"userId\": null\n}"
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"contactDetailsCity\": \"New York\",\n  \"contactDetailsPhone\": \"123-456-7890\",\n  \"contactDetailsSecondaryPhone\": \"098-765-4321\",\n  \"employeeNumber\": \"EMP001\",\n  \"employeeType\": 1,\n  \"userName\": \"john.doe\",\n  \"password\": \"SecurePassword123\",\n  \"email\": \"john.doe@valueprotect.com\",\n  \"roleName\": \"ROLE_EMPLOYEE\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/employees",
@@ -68,12 +68,138 @@
 								"employees"
 							]
 						},
-						"description": "Creates a new employee record"
+						"description": "Creates a new employee with a user account for authentication. The user account is created automatically with the provided credentials."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Employee with Auto-Generated Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"contactDetailsCity\": \"Los Angeles\",\n  \"contactDetailsPhone\": \"555-123-4567\",\n  \"employeeNumber\": \"EMP002\",\n  \"employeeType\": 2,\n  \"userName\": \"jane.smith\",\n  \"password\": \"SecurePassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Creates employee with user account. Email is auto-generated as firstname.lastname@valueprotect.com"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Employee with Existing User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Bob\",\n  \"lastName\": \"Johnson\",\n  \"contactDetailsCity\": \"Chicago\",\n  \"contactDetailsPhone\": \"555-987-6543\",\n  \"employeeNumber\": \"EMP003\",\n  \"employeeType\": 1,\n  \"userId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Creates employee linked to an existing user account by userId"
 					},
 					"response": []
 				}
 			],
 			"description": "Employee management endpoints"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"1"
+							]
+						},
+						"description": "Retrieves a user by their ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by Username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/username/john.doe",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"username",
+								"john.doe"
+							]
+						},
+						"description": "Retrieves a user by their username"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/email/john.doe@valueprotect.com",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"email",
+								"john.doe@valueprotect.com"
+							]
+						},
+						"description": "Retrieves a user by their email address"
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints"
 		},
 		{
 			"name": "Actuator",
