@@ -46,7 +46,7 @@ public class EmployeeService {
             }
             
             // Default role if not specified
-            String roleName = request.getRoleName() != null ? request.getRoleName() : "ROLE_EMPLOYEE";
+            String roleName = request.getRoleName() != null ? request.getRoleName() : "EMPLOYEE";
             
             // Create the user account
             user = userService.createUser(request.getUserName(), email, request.getPassword(), roleName);
@@ -56,7 +56,9 @@ public class EmployeeService {
             employee.setUser(user);
         }
         
-        employee.setArchived(false);
+        if (employee.getArchived() == null) {
+            employee.setArchived(false);
+        }
         Employee saved = employeeRepository.save(employee);
         return EmployeeDto.fromEntity(saved);
     }
