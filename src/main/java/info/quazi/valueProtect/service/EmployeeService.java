@@ -17,23 +17,48 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
-    public EmployeeService(EmployeeRepository employeeRepository, UserRepository userRepository) {
+    public EmployeeService(EmployeeRepository employeeRepository, UserRepository userRepository, UserService userService) {
         this.employeeRepository = employeeRepository;
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     @Transactional
     public EmployeeDto createEmployee(CreateEmployeeRequest request) {
         Employee employee = request.toEntity();
         
+        User user = null;
+        
+        // If userId is provided, use existing user
         if (request.getUserId() != null) {
-            User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
+            Long userId = request.getUserId();
+            user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        } 
+        // Otherwise, create a new user if username and password are provided
+        else if (request.getUserName() != null && request.getPassword() != null) {
+            // Generate email from employee info if not provided
+            String email = request.getEmail();
+            if (email == null && request.getFirstName() != null && request.getLastName() != null) {
+                email = (request.getFirstName() + "." + request.getLastName() + "@valueprotect.com").toLowerCase();
+            }
+            
+            // Default role if not specified
+            String roleName = request.getRoleName() != null ? request.getRoleName() : "EMPLOYEE";
+            
+            // Create the user account
+            user = userService.createUser(request.getUserName(), email, request.getPassword(), roleName);
+        }
+        
+        if (user != null) {
             employee.setUser(user);
         }
         
-        employee.setArchived(false);
+        if (employee.getArchived() == null) {
+            employee.setArchived(false);
+        }
         Employee saved = employeeRepository.save(employee);
         return EmployeeDto.fromEntity(saved);
     }
