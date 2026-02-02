@@ -33,6 +33,7 @@ public class EmployeeService {
         
         // If userId is provided, use existing user
         if (request.getUserId() != null) {
+            @SuppressWarnings("null")
             Long userId = request.getUserId();
             user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -59,6 +60,7 @@ public class EmployeeService {
         if (employee.getArchived() == null) {
             employee.setArchived(false);
         }
+        @SuppressWarnings("null")
         Employee saved = employeeRepository.save(employee);
         return EmployeeDto.fromEntity(saved);
     }
@@ -68,5 +70,79 @@ public class EmployeeService {
         return employeeRepository.findByArchivedFalseOrArchivedIsNull().stream()
             .map(EmployeeDto::fromEntity)
             .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeeDto getEmployeeById(Long id) {
+        @SuppressWarnings("null")
+        Employee employee = employeeRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        return EmployeeDto.fromEntity(employee);
+    }
+
+    @Transactional
+    public EmployeeDto updateEmployee(Long id, CreateEmployeeRequest request) {
+        @SuppressWarnings("null")
+        Employee employee = employeeRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        
+        // Update basic employee information
+        if (request.getFirstName() != null) {
+            employee.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null) {
+            employee.setLastName(request.getLastName());
+        }
+        if (request.getEmployeeNumber() != null) {
+            employee.setEmployeeNumber(request.getEmployeeNumber());
+        }
+        if (request.getEmployeeType() != null) {
+            employee.setEmployeeType(request.getEmployeeType());
+        }
+        if (request.getContactDetailsCity() != null) {
+            employee.setContactDetailsCity(request.getContactDetailsCity());
+        }
+        if (request.getContactDetailsPhone() != null) {
+            employee.setContactDetailsPhone(request.getContactDetailsPhone());
+        }
+        if (request.getContactDetailsSecondaryPhone() != null) {
+            employee.setContactDetailsSecondaryPhone(request.getContactDetailsSecondaryPhone());
+        }
+        
+        // Update user association if userId is provided
+        if (request.getUserId() != null) {
+            @SuppressWarnings("null")
+            Long requestUserId = request.getUserId();
+            User user = userRepository.findById(requestUserId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + requestUserId));
+            employee.setUser(user);
+        }
+        
+        @SuppressWarnings("null")
+        Employee updated = employeeRepository.save(employee);
+        return EmployeeDto.fromEntity(updated);
+    }
+
+    @Transactional
+    public void deleteEmployee(Long id) {
+        @SuppressWarnings("null")
+        Employee employee = employeeRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        
+        // Soft delete by setting archived to true
+        employee.setArchived(true);
+        employeeRepository.save(employee);
+    }
+
+    @Transactional
+    public void hardDeleteEmployee(Long id) {
+        @SuppressWarnings("null")
+        boolean exists = employeeRepository.existsById(id);
+        if (!exists) {
+            throw new RuntimeException("Employee not found with id: " + id);
+        }
+        @SuppressWarnings("null")
+        Long nonNullId = id;
+        employeeRepository.deleteById(nonNullId);
     }
 }
