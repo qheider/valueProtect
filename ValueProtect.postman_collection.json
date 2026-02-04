@@ -129,6 +129,97 @@
 						"description": "Creates employee linked to an existing user account by userId"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Employee by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/employees/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees",
+								"1"
+							]
+						},
+						"description": "Retrieves a specific employee by their ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Employee",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John Updated\",\n  \"lastName\": \"Doe\",\n  \"contactDetailsCity\": \"San Francisco\",\n  \"contactDetailsPhone\": \"555-111-2222\",\n  \"contactDetailsSecondaryPhone\": \"555-333-4444\",\n  \"employeeNumber\": \"EMP001-UPDATED\",\n  \"employeeType\": 2\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees",
+								"1"
+							]
+						},
+						"description": "Updates an existing employee record. Only provided fields will be updated."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Employee (Soft Delete)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/employees/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees",
+								"1"
+							]
+						},
+						"description": "Soft deletes an employee by marking them as archived. The record remains in the database."
+					},
+					"response": []
+				},
+				{
+					"name": "Permanently Delete Employee",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/employees/1/hard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees",
+								"1",
+								"hard"
+							]
+						},
+						"description": "Permanently removes an employee from the database. This action cannot be undone."
+					},
+					"response": []
 				}
 			],
 			"description": "Employee management endpoints"
