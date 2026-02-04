@@ -202,6 +202,201 @@
 			"description": "User management endpoints"
 		},
 		{
+			"name": "Companies",
+			"item": [
+				{
+					"name": "Register New Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Acme Corporation\",\n  \"companyCode\": \"ACME001\",\n  \"email\": \"info@acmecorp.com\",\n  \"phone\": \"555-0100\",\n  \"website\": \"https://www.acmecorp.com\",\n  \"addressLine1\": \"123 Business Street\",\n  \"addressLine2\": \"Suite 100\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"USA\",\n  \"postalCode\": \"10001\",\n  \"taxId\": \"12-3456789\",\n  \"registrationNumber\": \"REG-2024-001\",\n  \"description\": \"Leading technology solutions provider\",\n  \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/companies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies"
+							]
+						},
+						"description": "Registers a new company in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Companies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies"
+							]
+						},
+						"description": "Retrieves all registered companies (non-archived)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Company by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"1"
+							]
+						},
+						"description": "Retrieves a company by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Company by Code",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/code/ACME001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"code",
+								"ACME001"
+							]
+						},
+						"description": "Retrieves a company by its unique company code"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Companies by Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/status/ACTIVE",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"status",
+								"ACTIVE"
+							]
+						},
+						"description": "Retrieves companies filtered by status (ACTIVE, INACTIVE, SUSPENDED)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Company",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Acme Corporation Updated\",\n  \"email\": \"contact@acmecorp.com\",\n  \"phone\": \"555-0200\",\n  \"website\": \"https://www.acmecorp.com\",\n  \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"1"
+							]
+						},
+						"description": "Updates an existing company's information"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Company (Soft Delete)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"1"
+							]
+						},
+						"description": "Soft deletes a company by archiving it"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Employee with Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Williams\",\n  \"contactDetailsCity\": \"San Francisco\",\n  \"contactDetailsPhone\": \"555-222-3333\",\n  \"employeeNumber\": \"EMP004\",\n  \"employeeType\": 1,\n  \"companyId\": 1,\n  \"userName\": \"alice.williams\",\n  \"password\": \"SecurePassword123\",\n  \"roleName\": \"ROLE_EMPLOYEE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Creates employee with user account and company assignment. Company reference is optional."
+					},
+					"response": []
+				}
+			],
+			"description": "Company registration and management endpoints"
+		},
+		{
 			"name": "PassProtect",
 			"item": [
 				{

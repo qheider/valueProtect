@@ -2,8 +2,10 @@ package info.quazi.valueProtect.service;
 
 import info.quazi.valueProtect.dto.CreateEmployeeRequest;
 import info.quazi.valueProtect.dto.EmployeeDto;
+import info.quazi.valueProtect.entity.Company;
 import info.quazi.valueProtect.entity.Employee;
 import info.quazi.valueProtect.entity.User;
+import info.quazi.valueProtect.repository.CompanyRepository;
 import info.quazi.valueProtect.repository.EmployeeRepository;
 import info.quazi.valueProtect.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -18,11 +20,13 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final CompanyRepository companyRepository;
 
-    public EmployeeService(EmployeeRepository employeeRepository, UserRepository userRepository, UserService userService) {
+    public EmployeeService(EmployeeRepository employeeRepository, UserRepository userRepository, UserService userService, CompanyRepository companyRepository) {
         this.employeeRepository = employeeRepository;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.companyRepository = companyRepository;
     }
 
     @Transactional
@@ -34,8 +38,10 @@ public class EmployeeService {
         // If userId is provided, use existing user
         if (request.getUserId() != null) {
             Long userId = request.getUserId();
-            user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+            if (userId != null) {
+                user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+            }
         } 
         // Otherwise, create a new user if username and password are provided
         else if (request.getUserName() != null && request.getPassword() != null) {
@@ -54,6 +60,16 @@ public class EmployeeService {
         
         if (user != null) {
             employee.setUser(user);
+        }
+        
+        // Set company if companyId is provided (optional)
+        if (request.getCompanyId() != null) {
+            Long companyId = request.getCompanyId();
+            if (companyId != null) {
+                Company company = companyRepository.findById(companyId)
+                    .orElseThrow(() -> new RuntimeException("Company not found with id: " + companyId));
+                employee.setCompany(company);
+            }
         }
         
         if (employee.getArchived() == null) {

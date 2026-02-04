@@ -34,6 +34,10 @@ public class Employee extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne
+    @JoinColumn(name = "company_id")
+    private Company company;
+
     @Column(name = "empPicture_contentType", length = 255)
     private String empPictureContentType;
 
@@ -114,6 +118,14 @@ public class Employee extends BaseEntity {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Company getCompany() {
+        return company;
+    }
+
+    public void setCompany(Company company) {
+        this.company = company;
     }
 
     public String getEmpPictureContentType() {

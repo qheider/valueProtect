@@ -12,6 +12,7 @@ public class CreateEmployeeRequest {
     private String employeeNumber;
     private Integer employeeType;
     private Long userId;
+    private Long companyId; // Optional company reference
     
     // User account fields
     private String userName;
@@ -93,6 +94,14 @@ public class CreateEmployeeRequest {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(Long companyId) {
+        this.companyId = companyId;
     }
 
     public String getUserName() {

@@ -3,7 +3,10 @@ package info.quazi.valueProtect.service;
 import info.quazi.valueProtect.dto.CreatePassProtectRequest;
 import info.quazi.valueProtect.dto.PassProtectDto;
 import info.quazi.valueProtect.dto.UpdatePassProtectRequest;
+import info.quazi.valueProtect.entity.Employee;
 import info.quazi.valueProtect.entity.PassProtect;
+import info.quazi.valueProtect.entity.User;
+import info.quazi.valueProtect.repository.EmployeeRepository;
 import info.quazi.valueProtect.repository.PassProtectRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,19 +23,29 @@ public class PassProtectService {
 
     private final PassProtectRepository passProtectRepository;
     private final UserService userService;
+    private final EmployeeRepository employeeRepository;
 
-    public PassProtectService(PassProtectRepository passProtectRepository, UserService userService) {
+    public PassProtectService(PassProtectRepository passProtectRepository, UserService userService, EmployeeRepository employeeRepository) {
         this.passProtectRepository = passProtectRepository;
         this.userService = userService;
+        this.employeeRepository = employeeRepository;
     }
 
     @Transactional
     public PassProtectDto create(CreatePassProtectRequest request) {
-        Long userId = getAuthenticatedUserId();
+        User authenticatedUser = getAuthenticatedUser();
         
         PassProtect passProtect = request.toEntity();
-        passProtect.setCreatedByUserId(userId);
+        passProtect.setCreatedByUserId(authenticatedUser.getId());
         passProtect.setArchived(false);
+        
+        // Find and set the employee associated with the logged-in user
+        Optional<Employee> employee = employeeRepository.findByUserAndArchivedFalse(authenticatedUser);
+        if (employee.isPresent()) {
+            passProtect.setEmployee(employee.get());
+        } else {
+            throw new RuntimeException("No active employee found for the authenticated user");
+        }
         
         @SuppressWarnings("null")
         PassProtect saved = passProtectRepository.save(passProtect);
@@ -98,6 +112,10 @@ public class PassProtectService {
     }
 
     private Long getAuthenticatedUserId() {
+        return getAuthenticatedUser().getId();
+    }
+    
+    private User getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -108,8 +126,7 @@ public class PassProtectService {
         if (principal instanceof UserDetails) {
             String username = ((UserDetails) principal).getUsername();
             return userService.findByUserName(username)
-                .orElseThrow(() -> new RuntimeException("User not found"))
-                .getId();
+                .orElseThrow(() -> new RuntimeException("User not found"));
         }
         
         throw new RuntimeException("Invalid authentication principal");
