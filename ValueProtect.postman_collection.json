@@ -15,7 +15,7 @@
 			},
 			{
 				"key": "password",
-				"value": "admin123",
+				"value": "Heartcore123!",
 				"type": "string"
 			}
 		]
@@ -200,6 +200,137 @@
 				}
 			],
 			"description": "User management endpoints"
+		},
+		{
+			"name": "PassProtect",
+			"item": [
+				{
+					"name": "Create PassProtect",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"Google\",\n  \"companyUserName\": \"user@example.com\",\n  \"companyPassword\": \"SecurePass123!\",\n  \"note\": \"Work email account credentials\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/passprotect",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passprotect"
+							]
+						},
+						"description": "Creates a new PassProtect record for the authenticated user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get PassProtect by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/passprotect/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passprotect",
+								"1"
+							]
+						},
+						"description": "Retrieves a PassProtect record by ID (only if owned by authenticated user)"
+					},
+					"response": []
+				},
+				{
+					"name": "Search PassProtect by Company Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/passprotect/search?companyName=Google",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passprotect",
+								"search"
+							],
+							"query": [
+								{
+									"key": "companyName",
+									"value": "Google"
+								}
+							]
+						},
+						"description": "Searches PassProtect records by partial company name (case-insensitive) for the authenticated user"
+					},
+					"response": []
+				},
+				{
+					"name": "Update PassProtect",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"Google Updated\",\n  \"companyUserName\": \"newuser@example.com\",\n  \"companyPassword\": \"NewSecurePass456!\",\n  \"note\": \"Updated work email account credentials\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/passprotect/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passprotect",
+								"1"
+							]
+						},
+						"description": "Updates an existing PassProtect record (only if owned by authenticated user)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete PassProtect (Soft Delete)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/passprotect/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"passprotect",
+								"1"
+							]
+						},
+						"description": "Soft deletes a PassProtect record (only if owned by authenticated user)"
+					},
+					"response": []
+				}
+			],
+			"description": "PassProtect password management endpoints - All operations are restricted to records owned by the authenticated user"
 		},
 		{
 			"name": "Actuator",

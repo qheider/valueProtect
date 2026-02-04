@@ -78,4 +78,12 @@ public class UserService {
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
+
+    @Transactional
+    public void updatePassword(String userName, String newPassword) {
+        User user = userRepository.findByUserName(userName)
+            .orElseThrow(() -> new RuntimeException("User not found: " + userName));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }
