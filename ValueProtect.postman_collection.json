@@ -129,6 +129,27 @@
 						"description": "Creates employee linked to an existing user account by userId"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Employees by Company (Admin Only)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/employees/company/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees",
+								"company",
+								"1"
+							]
+						},
+						"description": "Retrieves all employees from a specific company. Only accessible to admin users who belong to the same company."
+					},
+					"response": []
 				}
 			],
 			"description": "Employee management endpoints"

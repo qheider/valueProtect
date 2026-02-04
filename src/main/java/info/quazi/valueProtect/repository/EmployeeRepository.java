@@ -1,5 +1,6 @@
 package info.quazi.valueProtect.repository;
 
+import info.quazi.valueProtect.entity.Company;
 import info.quazi.valueProtect.entity.Employee;
 import info.quazi.valueProtect.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByUserAndArchivedFalse(User user);
     
     Optional<Employee> findByUser(User user);
+    
+    List<Employee> findByCompanyAndArchivedFalse(Company company);
 }

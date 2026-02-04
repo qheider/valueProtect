@@ -8,6 +8,9 @@ import info.quazi.valueProtect.entity.User;
 import info.quazi.valueProtect.repository.CompanyRepository;
 import info.quazi.valueProtect.repository.EmployeeRepository;
 import info.quazi.valueProtect.repository.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,5 +87,61 @@ public class EmployeeService {
         return employeeRepository.findByArchivedFalseOrArchivedIsNull().stream()
             .map(EmployeeDto::fromEntity)
             .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeDto> getEmployeesByCompany(Long companyId) {
+        // Get authenticated user
+        User authenticatedUser = getAuthenticatedUser();
+        
+        // Check if user has admin role
+        boolean isAdmin = authenticatedUser.getRoles().stream()
+            .anyMatch(role -> "ROLE_ADMIN".equalsIgnoreCase(role.getName()) || "ADMIN".equalsIgnoreCase(role.getName()));
+        
+        if (!isAdmin) {
+            throw new RuntimeException("Access denied. Only admin users can view employees by company.");
+        }
+        
+        // Get the employee record of the authenticated user
+        Employee authenticatedEmployee = employeeRepository.findByUserAndArchivedFalse(authenticatedUser)
+            .orElseThrow(() -> new RuntimeException("No employee record found for the authenticated user"));
+        
+        // Check if the authenticated user belongs to the same company
+        if (authenticatedEmployee.getCompany() == null) {
+            throw new RuntimeException("Your employee record is not associated with any company");
+        }
+        
+        if (!authenticatedEmployee.getCompany().getId().equals(companyId)) {
+            throw new RuntimeException("Access denied. You can only view employees from your own company.");
+        }
+        
+        // Get the company
+        if (companyId == null) {
+            throw new RuntimeException("Company ID cannot be null");
+        }
+        Company company = companyRepository.findById(companyId)
+            .orElseThrow(() -> new RuntimeException("Company not found with id: " + companyId));
+        
+        // Return employees from the same company
+        return employeeRepository.findByCompanyAndArchivedFalse(company).stream()
+            .map(EmployeeDto::fromEntity)
+            .collect(Collectors.toList());
+    }
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("User not authenticated");
+        }
+        
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails) {
+            String username = ((UserDetails) principal).getUsername();
+            return userService.findByUserName(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        }
+        
+        throw new RuntimeException("Invalid authentication principal");
     }
 }

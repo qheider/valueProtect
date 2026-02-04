@@ -35,4 +35,19 @@ public class EmployeeController {
         EmployeeDto created = employeeService.createEmployee(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
+
+    @GetMapping("/company/{companyId}")
+    @Operation(
+        summary = "Get employees by company", 
+        description = "Retrieves all employees from a specific company. " +
+                     "**Security Rules:** " +
+                     "1. Only admin users can access this endpoint. " +
+                     "2. Admin can only view employees from their own company. " +
+                     "3. If user's employee record has no company, access is denied. " +
+                     "4. If user tries to access another company's employees, access is denied."
+    )
+    public ResponseEntity<List<EmployeeDto>> getEmployeesByCompany(@PathVariable Long companyId) {
+        List<EmployeeDto> employees = employeeService.getEmployeesByCompany(companyId);
+        return ResponseEntity.ok(employees);
+    }
 }
