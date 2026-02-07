@@ -255,6 +255,169 @@
 					"response": []
 				},
 				{
+					"name": "Register Company with Admin User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/register-with-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"register-with-admin"
+							]
+						},
+						"description": "Creates a new company along with an admin user and employee record. This API allows any client to create a complete company setup with an administrative user. No authentication required for initial company registration."
+					},
+					"response": [
+						{
+							"name": "Successful Registration",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/companies/register-with-admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"companies",
+										"register-with-admin"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"companyId\": 1,\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyStatus\": \"ACTIVE\",\n  \"adminUserId\": 2,\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"employeeId\": 3,\n  \"message\": \"Company and admin user registered successfully\"\n}"
+						},
+						{
+							"name": "Duplicate Username Error",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"companyName\": \"Another Corp\",\n  \"companyCode\": \"ANOTHER001\",\n  \"companyEmail\": \"info@another.com\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin2@another.com\",\n  \"adminPassword\": \"Password123!\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/companies/register-with-admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"companies",
+										"register-with-admin"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"message\": \"Registration failed: User with username 'test.admin' already exists\"\n}"
+						},
+						{
+							"name": "Validation Error",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"companyName\": \"\",\n  \"adminUsername\": \"test\",\n  \"adminEmail\": \"invalid-email\",\n  \"adminPassword\": \"123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/companies/register-with-admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"companies",
+										"register-with-admin"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"timestamp\": \"2026-02-06T18:30:45.123+00:00\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"Validation failed\",\n  \"path\": \"/api/companies/register-with-admin\"\n}"
+						}
+					]
+				},
+				{
 					"name": "Get All Companies",
 					"request": {
 						"method": "GET",

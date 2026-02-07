@@ -1,9 +1,12 @@
 package info.quazi.valueProtect.controller;
 
+import info.quazi.valueProtect.dto.RegisterCompanyRequest;
+import info.quazi.valueProtect.dto.RegisterCompanyResponse;
 import info.quazi.valueProtect.entity.Company;
 import info.quazi.valueProtect.service.CompanyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +29,21 @@ public class CompanyController {
     public ResponseEntity<Company> createCompany(@RequestBody Company company) {
         Company createdCompany = companyService.create(company);
         return new ResponseEntity<>(createdCompany, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/register-with-admin")
+    @Operation(summary = "Register company with admin user", 
+               description = "Creates a new company along with an admin user and employee record. This API allows any client to create a complete company setup with an administrative user.")
+    public ResponseEntity<RegisterCompanyResponse> registerCompanyWithAdminUser(@Valid @RequestBody RegisterCompanyRequest request) {
+        try {
+            RegisterCompanyResponse response = companyService.registerCompanyWithAdminUser(request);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            // Return error response
+            RegisterCompanyResponse errorResponse = new RegisterCompanyResponse();
+            errorResponse.setMessage("Registration failed: " + e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PutMapping("/{id}")
