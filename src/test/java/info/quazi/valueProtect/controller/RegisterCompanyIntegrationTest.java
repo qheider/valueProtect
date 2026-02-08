@@ -75,11 +75,13 @@ public class RegisterCompanyIntegrationTest {
         assertEquals("Company and admin user registered successfully", response.getMessage());
 
         // Verify data in database
+        @SuppressWarnings("null")
         Optional<Company> savedCompany = companyRepository.findById(response.getCompanyId());
         assertTrue(savedCompany.isPresent());
         assertEquals("Test Corporation", savedCompany.get().getName());
         assertEquals("ACTIVE", savedCompany.get().getStatus());
 
+        @SuppressWarnings("null")
         Optional<User> savedUser = userRepository.findById(response.getAdminUserId());
         assertTrue(savedUser.isPresent());
         assertEquals("test.admin", savedUser.get().getUserName());
@@ -88,6 +90,7 @@ public class RegisterCompanyIntegrationTest {
         assertFalse(savedUser.get().getRoles().isEmpty());
         assertEquals("ADMIN", savedUser.get().getRoles().iterator().next().getName());
 
+        @SuppressWarnings("null")
         Optional<Employee> savedEmployee = employeeRepository.findById(response.getEmployeeId());
         assertTrue(savedEmployee.isPresent());
         assertEquals("Test", savedEmployee.get().getFirstName());

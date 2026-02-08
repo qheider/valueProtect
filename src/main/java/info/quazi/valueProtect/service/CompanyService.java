@@ -146,14 +146,17 @@ public class CompanyService {
         try {
             // 1. Create Company
             Company company = createCompanyFromRequest(request);
+            @SuppressWarnings("null")
             Company savedCompany = companyRepository.save(company);
             
             // 2. Create Admin User
             User adminUser = createAdminUserFromRequest(request);
+            @SuppressWarnings("null")
             User savedUser = userRepository.save(adminUser);
             
             // 3. Create Employee record linking user to company
             Employee employee = createEmployeeFromRequest(request, savedUser, savedCompany);
+            @SuppressWarnings("null")
             Employee savedEmployee = employeeRepository.save(employee);
             
             // 4. Build response

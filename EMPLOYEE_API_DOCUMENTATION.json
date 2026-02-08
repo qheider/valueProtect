@@ -1,0 +1,143 @@
+{
+  "employee_creation_api": {
+    "endpoint": "POST /api/employees",
+    "description": "Create a new employee for the admin's company",
+    "authentication": "Bearer token required (admin user only)",
+    "security_rules": [
+      "Only users with ROLE_ADMIN can create employees",
+      "Admin can only create employees for their own company", 
+      "The new employee will be automatically assigned to the admin's company",
+      "Admin cannot assign ROLE_ADMIN to new employees (defaults to ROLE_EMPLOYEE)"
+    ],
+    "request_body": {
+      "required_fields": [
+        "firstName",
+        "lastName"
+      ],
+      "optional_fields": [
+        "contactDetailsPhone",
+        "contactDetailsSecondaryPhone", 
+        "contactDetailsCity",
+        "employeeNumber",
+        "employeeType",
+        "userId",
+        "userName",
+        "email",
+        "password",
+        "roleName"
+      ],
+      "field_descriptions": {
+        "firstName": "Employee's first name (max 50 chars)",
+        "lastName": "Employee's last name (max 50 chars)", 
+        "contactDetailsPhone": "Primary phone number (max 20 chars)",
+        "contactDetailsSecondaryPhone": "Secondary phone number (max 20 chars)",
+        "contactDetailsCity": "City of residence",
+        "employeeNumber": "Unique employee identifier",
+        "employeeType": "Integer representing employee type/level",
+        "userId": "If provided, links employee to existing user account",
+        "userName": "Username for new user account (3-50 chars)",
+        "email": "Email for new user account (if not provided, auto-generated)",
+        "password": "Password for new user account (min 6 chars)",
+        "roleName": "Role for new user (defaults to ROLE_EMPLOYEE, cannot be ROLE_ADMIN)"
+      }
+    },
+    "examples": {
+      "create_employee_with_new_user": {
+        "description": "Create employee with new user account",
+        "request": {
+          "firstName": "John",
+          "lastName": "Doe",
+          "employeeNumber": "EMP001",
+          "contactDetailsPhone": "1234567890",
+          "contactDetailsCity": "New York",
+          "employeeType": 1,
+          "userName": "john.doe",
+          "password": "securepass123",
+          "roleName": "ROLE_EMPLOYEE"
+        }
+      },
+      "create_employee_with_existing_user": {
+        "description": "Create employee linked to existing user",
+        "request": {
+          "firstName": "Jane", 
+          "lastName": "Smith",
+          "employeeNumber": "EMP002",
+          "contactDetailsPhone": "0987654321",
+          "userId": 123
+        }
+      },
+      "minimal_employee": {
+        "description": "Create employee with minimum required fields and new user",
+        "request": {
+          "firstName": "Alice",
+          "lastName": "Johnson", 
+          "userName": "alice.johnson",
+          "password": "password123"
+        },
+        "notes": "Email will be auto-generated as alice.johnson@{companyname}.com"
+      }
+    },
+    "response": {
+      "success_status": 201,
+      "success_body": {
+        "id": 1,
+        "firstName": "John",
+        "lastName": "Doe", 
+        "employeeNumber": "EMP001",
+        "contactDetailsPhone": "1234567890",
+        "contactDetailsCity": "New York",
+        "employeeType": 1,
+        "companyId": 1,
+        "companyName": "Test Company",
+        "userName": "john.doe",
+        "userId": 2,
+        "archived": false
+      }
+    },
+    "error_responses": {
+      "403_access_denied": {
+        "status": 403,
+        "message": "Access denied. Only admin users can create employees."
+      },
+      "400_no_company": {
+        "status": 400, 
+        "message": "Your employee record is not associated with any company. Cannot create employees."
+      },
+      "400_validation": {
+        "status": 400,
+        "message": "Validation failed: First name is required"
+      },
+      "404_user_not_found": {
+        "status": 404,
+        "message": "User not found with id: 123"
+      }
+    }
+  },
+  "additional_endpoints": {
+    "get_company_employees": {
+      "endpoint": "GET /api/employees/company/{companyId}",
+      "description": "Get all employees from admin's company",
+      "authentication": "Bearer token required (admin user only)",
+      "security": "Admin can only view employees from their own company"
+    },
+    "get_all_employees": {
+      "endpoint": "GET /api/employees",
+      "description": "Get all active employees (no company restrictions)"
+    }
+  },
+  "authentication_flow": {
+    "steps": [
+      "1. Admin user logs in to get JWT token",
+      "2. Include 'Authorization: Bearer {token}' header in requests", 
+      "3. System validates admin role and company association",
+      "4. API allows employee creation for admin's company only"
+    ]
+  },
+  "business_rules": {
+    "company_isolation": "Employees can only be created within admin's own company",
+    "role_restrictions": "New employees default to ROLE_EMPLOYEE role",
+    "email_generation": "If email not provided, auto-generated as firstname.lastname@{company}.com",
+    "user_account": "Can either link to existing user or create new user account",
+    "audit_trail": "createdByUserId tracks which admin created the employee"
+  }
+}

@@ -15,6 +15,10 @@ public class EmployeeDto {
     private Long userId;
     private String empPictureName;
     private String empPictureContentType;
+    private Boolean archived;
+    private Long companyId;
+    private String companyName;
+    private String userName;
 
     public static EmployeeDto fromEntity(Employee employee) {
         if (employee == null) {
@@ -32,6 +36,10 @@ public class EmployeeDto {
         dto.setUserId(employee.getUser() != null ? employee.getUser().getId() : null);
         dto.setEmpPictureName(employee.getEmpPictureName());
         dto.setEmpPictureContentType(employee.getEmpPictureContentType());
+        dto.setArchived(employee.getArchived());
+        dto.setCompanyId(employee.getCompany() != null ? employee.getCompany().getId() : null);
+        dto.setCompanyName(employee.getCompany() != null ? employee.getCompany().getName() : null);
+        dto.setUserName(employee.getUser() != null ? employee.getUser().getUserName() : null);
         return dto;
     }
 
@@ -121,5 +129,37 @@ public class EmployeeDto {
 
     public void setEmpPictureContentType(String empPictureContentType) {
         this.empPictureContentType = empPictureContentType;
+    }
+
+    public Boolean getArchived() {
+        return archived;
+    }
+
+    public void setArchived(Boolean archived) {
+        this.archived = archived;
+    }
+
+    public Long getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(Long companyId) {
+        this.companyId = companyId;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }

@@ -1,23 +1,43 @@
 package info.quazi.valueProtect.dto;
 
 import info.quazi.valueProtect.entity.Employee;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 
 public class CreateEmployeeRequest {
 
     private String contactDetailsCity;
+    
+    @Size(max = 20, message = "Phone number should not exceed 20 characters")
     private String contactDetailsPhone;
+    
+    @Size(max = 20, message = "Secondary phone number should not exceed 20 characters")
     private String contactDetailsSecondaryPhone;
+    
+    @NotBlank(message = "First name is required")
+    @Size(max = 50, message = "First name should not exceed 50 characters")
     private String firstName;
+    
+    @NotBlank(message = "Last name is required")
+    @Size(max = 50, message = "Last name should not exceed 50 characters")
     private String lastName;
+    
     private String employeeNumber;
     private Integer employeeType;
     private Long userId;
-    private Long companyId; // Optional company reference
+    private Long companyId; // This will be overridden by the admin's company
     
-    // User account fields
+    // User account fields (required when creating a new user)
+    @Size(min = 3, max = 50, message = "Username should be between 3 and 50 characters")
     private String userName;
+    
+    @Email(message = "Please provide a valid email address")
     private String email;
+    
+    @Size(min = 6, message = "Password should be at least 6 characters")
     private String password;
+    
     private String roleName = "ROLE_EMPLOYEE"; // Default role
 
     public Employee toEntity() {

@@ -82,6 +82,82 @@ public class EmployeeService {
         return EmployeeDto.fromEntity(saved);
     }
 
+    @Transactional
+    public EmployeeDto createEmployeeForAdminCompany(CreateEmployeeRequest request) {
+        // Get authenticated user
+        User authenticatedUser = getAuthenticatedUser();
+        
+        // Check if user has admin role
+        boolean isAdmin = authenticatedUser.getRoles().stream()
+            .anyMatch(role -> "ROLE_ADMIN".equalsIgnoreCase(role.getName()) || "ADMIN".equalsIgnoreCase(role.getName()));
+        
+        if (!isAdmin) {
+            throw new RuntimeException("Access denied. Only admin users can create employees.");
+        }
+        
+        // Get the employee record of the authenticated admin user
+        Employee authenticatedEmployee = employeeRepository.findByUserAndArchivedFalse(authenticatedUser)
+            .orElseThrow(() -> new RuntimeException("No employee record found for the authenticated user"));
+        
+        // Check if the admin user belongs to a company
+        if (authenticatedEmployee.getCompany() == null) {
+            throw new RuntimeException("Your employee record is not associated with any company. Cannot create employees.");
+        }
+        
+        Company adminCompany = authenticatedEmployee.getCompany();
+        
+        // Override any companyId in the request - admin can only create employees for their own company
+        request.setCompanyId(adminCompany.getId());
+        
+        Employee employee = request.toEntity();
+        
+        User user = null;
+        
+        // If userId is provided, use existing user
+        if (request.getUserId() != null) {
+            Long userId = request.getUserId();
+            if (userId != null) {
+                user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+            }
+        } 
+        // Otherwise, create a new user if username and password are provided
+        else if (request.getUserName() != null && request.getPassword() != null) {
+            // Generate email from employee info if not provided
+            String email = request.getEmail();
+            if (email == null && request.getFirstName() != null && request.getLastName() != null) {
+                email = (request.getFirstName() + "." + request.getLastName() + "@" + 
+                        adminCompany.getName().toLowerCase().replaceAll("\\s+", "") + ".com").toLowerCase();
+            }
+            
+            // Default role if not specified (employees should not have admin role by default)
+            String roleName = request.getRoleName();
+            if (roleName == null || "ROLE_ADMIN".equalsIgnoreCase(roleName) || "ADMIN".equalsIgnoreCase(roleName)) {
+                roleName = "ROLE_EMPLOYEE";
+            }
+            
+            // Create the user account
+            user = userService.createUser(request.getUserName(), email, request.getPassword(), roleName);
+        }
+        
+        if (user != null) {
+            employee.setUser(user);
+        }
+        
+        // Set the admin's company for the new employee
+        employee.setCompany(adminCompany);
+        
+        // Set the admin user as the creator
+        employee.setCreatedByUserId(authenticatedUser.getId());
+        
+        if (employee.getArchived() == null) {
+            employee.setArchived(false);
+        }
+        
+        Employee saved = employeeRepository.save(employee);
+        return EmployeeDto.fromEntity(saved);
+    }
+
     @Transactional(readOnly = true)
     public List<EmployeeDto> getActiveEmployees() {
         return employeeRepository.findByArchivedFalseOrArchivedIsNull().stream()
