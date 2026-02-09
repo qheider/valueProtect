@@ -40,6 +40,7 @@ public class EmployeeService {
         
         // If userId is provided, use existing user
         if (request.getUserId() != null) {
+            @SuppressWarnings("null")
             Long userId = request.getUserId();
             if (userId != null) {
                 user = userRepository.findById(userId)
@@ -78,6 +79,7 @@ public class EmployeeService {
         if (employee.getArchived() == null) {
             employee.setArchived(false);
         }
+        @SuppressWarnings("null")
         Employee saved = employeeRepository.save(employee);
         return EmployeeDto.fromEntity(saved);
     }
