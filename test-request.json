@@ -1,0 +1,18 @@
+{
+  "companyName": "Test Corporation",
+  "companyCode": "TEST001",
+  "companyEmail": "info@test.com",
+  "companyPhone": "+1-555-123-4567",
+  "companyWebsite": "https://www.test.com",
+  "addressLine1": "123 Test Street",
+  "city": "Test City",
+  "state": "TX", 
+  "country": "USA",
+  "postalCode": "12345",
+  "adminUsername": "test.admin",
+  "adminEmail": "admin@test.com", 
+  "adminPassword": "TestPass123!",
+  "adminFirstName": "Test",
+  "adminLastName": "Admin",
+  "adminPhone": "+1-555-123-4568"
+}

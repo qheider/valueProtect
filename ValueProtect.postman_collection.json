@@ -2,25 +2,76 @@
 	"info": {
 		"_postman_id": "valueprotect-collection-001",
 		"name": "ValueProtect API",
-		"description": "API collection for ValueProtect application - Employee management APIs",
+		"description": "API collection for ValueProtect application - Employee management APIs with admin-only employee creation",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
-		"type": "basic",
-		"basic": [
+		"type": "bearer",
+		"bearer": [
 			{
-				"key": "username",
-				"value": "admin",
-				"type": "string"
-			},
-			{
-				"key": "password",
-				"value": "Heartcore123!",
+				"key": "token",
+				"value": "{{jwt_token}}",
 				"type": "string"
 			}
 		]
 	},
 	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login Admin User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Store JWT token in collection variable if login successful",
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.token) {",
+									"        pm.collectionVariables.set('jwt_token', responseJson.token);",
+									"        console.log('JWT token stored successfully');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Heartcore123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with admin credentials to get JWT token. The token is automatically stored in collection variable 'jwt_token' for use in subsequent requests."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints to get JWT tokens"
+		},
 		{
 			"name": "Employees",
 			"item": [
@@ -44,7 +95,44 @@
 					"response": []
 				},
 				{
-					"name": "Create Employee with New User Account",
+					"name": "Create Employee (Admin Only) - New User Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test for successful employee creation",
+									"pm.test('Employee created successfully', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"// Test response structure",
+									"pm.test('Response has correct structure', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('id');",
+									"    pm.expect(responseJson).to.have.property('firstName');",
+									"    pm.expect(responseJson).to.have.property('lastName');",
+									"    pm.expect(responseJson).to.have.property('companyId');",
+									"    pm.expect(responseJson).to.have.property('userName');",
+									"});",
+									"",
+									"// Test security - employee assigned to admin's company",
+									"pm.test('Employee assigned to admin company', function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.companyId).to.not.be.null;",
+									"    pm.expect(responseJson.companyName).to.not.be.null;",
+									"});",
+									"",
+									"// Store created employee ID for cleanup if needed",
+									"if (pm.response.code === 201) {",
+									"    const responseJson = pm.response.json();",
+									"    pm.collectionVariables.set('created_employee_id', responseJson.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -56,7 +144,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"contactDetailsCity\": \"New York\",\n  \"contactDetailsPhone\": \"123-456-7890\",\n  \"contactDetailsSecondaryPhone\": \"098-765-4321\",\n  \"employeeNumber\": \"EMP001\",\n  \"employeeType\": 1,\n  \"userName\": \"john.doe\",\n  \"password\": \"SecurePassword123\",\n  \"email\": \"john.doe@valueprotect.com\",\n  \"roleName\": \"ROLE_EMPLOYEE\"\n}"
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"contactDetailsCity\": \"New York\",\n  \"contactDetailsPhone\": \"123-456-7890\",\n  \"contactDetailsSecondaryPhone\": \"098-765-4321\",\n  \"employeeNumber\": \"EMP{{$randomInt}}\",\n  \"employeeType\": 1,\n  \"userName\": \"john.doe.{{$randomInt}}\",\n  \"password\": \"SecurePassword123\",\n  \"email\": \"john.doe.{{$randomInt}}@company.com\",\n  \"roleName\": \"ROLE_EMPLOYEE\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/employees",
@@ -68,12 +156,151 @@
 								"employees"
 							]
 						},
-						"description": "Creates a new employee with a user account for authentication. The user account is created automatically with the provided credentials."
+						"description": "**ADMIN ONLY**: Creates a new employee with a user account. \n\n**Security Rules:**\n- Only admin users can create employees\n- Admin can only create employees for their own company\n- New employee is automatically assigned to admin's company\n- Cannot assign ROLE_ADMIN to new employees\n\n**Authentication Required**: Bearer JWT token with ROLE_ADMIN"
+					},
+					"response": [
+						{
+							"name": "Success - Employee Created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"employeeNumber\": \"EMP001\",\n  \"userName\": \"john.doe\",\n  \"password\": \"SecurePassword123\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/employees",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"employees"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"id\": 1,\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"employeeNumber\": \"EMP001\",\n  \"contactDetailsPhone\": \"123-456-7890\",\n  \"contactDetailsCity\": \"New York\",\n  \"employeeType\": 1,\n  \"companyId\": 1,\n  \"companyName\": \"Test Company\",\n  \"userName\": \"john.doe\",\n  \"userId\": 2,\n  \"archived\": false\n}"
+						},
+						{
+							"name": "Error - Access Denied (Non-Admin)",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"userName\": \"john.doe\",\n  \"password\": \"SecurePassword123\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/employees",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"employees"
+									]
+								}
+							},
+							"status": "Forbidden",
+							"code": 403,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"timestamp\": \"2026-02-07T14:30:00.123+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Access denied. Only admin users can create employees.\",\n  \"path\": \"/api/employees\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create Employee (Admin Only) - Auto-Generated Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Employee created with auto-generated email', function () {",
+									"    pm.response.to.have.status(201);",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.userName).to.contain('jane.smith');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"contactDetailsCity\": \"Los Angeles\",\n  \"contactDetailsPhone\": \"555-123-4567\",\n  \"employeeNumber\": \"EMP{{$randomInt}}\",\n  \"employeeType\": 2,\n  \"userName\": \"jane.smith.{{$randomInt}}\",\n  \"password\": \"SecurePassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "**ADMIN ONLY**: Creates employee with user account. Email is auto-generated as firstname.lastname@{companyname}.com\n\n**Note**: When email is not provided, it's automatically generated based on the admin's company name."
 					},
 					"response": []
 				},
 				{
-					"name": "Create Employee with Auto-Generated Email",
+					"name": "Create Employee (Admin Only) - Link Existing User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Employee linked to existing user', function () {",
+									"    if (pm.response.code === 201) {",
+									"        const responseJson = pm.response.json();",
+									"        pm.expect(responseJson.userId).to.not.be.null;",
+									"    } else if (pm.response.code === 404) {",
+									"        pm.expect(pm.response.text()).to.include('User not found');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -85,7 +312,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"contactDetailsCity\": \"Los Angeles\",\n  \"contactDetailsPhone\": \"555-123-4567\",\n  \"employeeNumber\": \"EMP002\",\n  \"employeeType\": 2,\n  \"userName\": \"jane.smith\",\n  \"password\": \"SecurePassword123\"\n}"
+							"raw": "{\n  \"firstName\": \"Bob\",\n  \"lastName\": \"Johnson\",\n  \"contactDetailsCity\": \"Chicago\",\n  \"contactDetailsPhone\": \"555-987-6543\",\n  \"employeeNumber\": \"EMP{{$randomInt}}\",\n  \"employeeType\": 1,\n  \"userId\": 1\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/employees",
@@ -97,12 +324,28 @@
 								"employees"
 							]
 						},
-						"description": "Creates employee with user account. Email is auto-generated as firstname.lastname@valueprotect.com"
+						"description": "**ADMIN ONLY**: Creates employee linked to an existing user account by userId. \n\n**Note**: Change userId to an existing user ID in your database, or this will return a 404 error."
 					},
 					"response": []
 				},
 				{
-					"name": "Create Employee with Existing User",
+					"name": "Create Employee (Admin Only) - Minimal Required Fields",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Minimal employee creation successful', function () {",
+									"    pm.response.to.have.status(201);",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.firstName).to.eql('Alice');",
+									"    pm.expect(responseJson.lastName).to.eql('Johnson');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -114,7 +357,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Bob\",\n  \"lastName\": \"Johnson\",\n  \"contactDetailsCity\": \"Chicago\",\n  \"contactDetailsPhone\": \"555-987-6543\",\n  \"employeeNumber\": \"EMP003\",\n  \"employeeType\": 1,\n  \"userId\": 1\n}"
+							"raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Johnson\",\n  \"userName\": \"alice.johnson.{{$randomInt}}\",\n  \"password\": \"password123\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/employees",
@@ -126,7 +369,72 @@
 								"employees"
 							]
 						},
-						"description": "Creates employee linked to an existing user account by userId"
+						"description": "**ADMIN ONLY**: Creates employee with only required fields. Email will be auto-generated, employee assigned to admin's company automatically."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Employees by Company (Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Admin can access company employees', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/employees/company/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees",
+								"company",
+								"1"
+							]
+						},
+						"description": "**ADMIN ONLY**: Retrieves all employees from a specific company. Only accessible to admin users who belong to the same company.\n\n**Security**: Admin can only view employees from their own company."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Employee with Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Williams\",\n  \"contactDetailsCity\": \"San Francisco\",\n  \"contactDetailsPhone\": \"555-222-3333\",\n  \"employeeNumber\": \"EMP004\",\n  \"employeeType\": 1,\n  \"companyId\": 1,\n  \"userName\": \"alice.williams\",\n  \"password\": \"SecurePassword123\",\n  \"roleName\": \"ROLE_EMPLOYEE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Creates employee with user account and company assignment. Company reference is optional."
 					},
 					"response": []
 				},
@@ -222,7 +530,119 @@
 					"response": []
 				}
 			],
-			"description": "Employee management endpoints"
+			"description": "Employee management endpoints - Admin authentication required for employee creation"
+		},
+		{
+			"name": "Employee Security Tests",
+			"item": [
+				{
+					"name": "Test Non-Admin Access Denied",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// This test should fail with 403 Forbidden if run with non-admin user",
+									"pm.test('Non-admin access properly denied', function () {",
+									"    pm.response.to.have.status(403);",
+									"    pm.expect(pm.response.text()).to.include('Access denied');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Set a fake or employee-level token to test access control",
+									"pm.collectionVariables.set('jwt_token', 'fake_or_employee_token');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"userName\": \"test.user\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Test that non-admin users cannot create employees. This should return 403 Forbidden."
+					},
+					"response": []
+				},
+				{
+					"name": "Test Validation Errors",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test validation error handling",
+									"pm.test('Validation errors properly returned', function () {",
+									"    pm.response.to.have.status(400);",
+									"    pm.expect(pm.response.text()).to.include('required');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Ensure we have a valid admin token for this test",
+									"// Run Login Admin User first to populate jwt_token"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"lastName\": \"Incomplete\",\n  \"userName\": \"incomplete.user\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Test validation by sending incomplete data (missing required firstName and password). Should return 400 Bad Request with validation errors."
+					},
+					"response": []
+				}
+			],
+			"description": "Security and validation tests for employee creation API"
 		},
 		{
 			"name": "Users",
@@ -291,6 +711,364 @@
 				}
 			],
 			"description": "User management endpoints"
+		},
+		{
+			"name": "Companies",
+			"item": [
+				{
+					"name": "Register New Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Acme Corporation\",\n  \"companyCode\": \"ACME001\",\n  \"email\": \"info@acmecorp.com\",\n  \"phone\": \"555-0100\",\n  \"website\": \"https://www.acmecorp.com\",\n  \"addressLine1\": \"123 Business Street\",\n  \"addressLine2\": \"Suite 100\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"USA\",\n  \"postalCode\": \"10001\",\n  \"taxId\": \"12-3456789\",\n  \"registrationNumber\": \"REG-2024-001\",\n  \"description\": \"Leading technology solutions provider\",\n  \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/companies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies"
+							]
+						},
+						"description": "Registers a new company in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Company with Admin User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/register-with-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"register-with-admin"
+							]
+						},
+						"description": "Creates a new company along with an admin user and employee record. This API allows any client to create a complete company setup with an administrative user. No authentication required for initial company registration."
+					},
+					"response": [
+						{
+							"name": "Successful Registration",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/companies/register-with-admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"companies",
+										"register-with-admin"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"companyId\": 1,\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyStatus\": \"ACTIVE\",\n  \"adminUserId\": 2,\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"employeeId\": 3,\n  \"message\": \"Company and admin user registered successfully\"\n}"
+						},
+						{
+							"name": "Duplicate Username Error",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"companyName\": \"Another Corp\",\n  \"companyCode\": \"ANOTHER001\",\n  \"companyEmail\": \"info@another.com\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin2@another.com\",\n  \"adminPassword\": \"Password123!\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/companies/register-with-admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"companies",
+										"register-with-admin"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"message\": \"Registration failed: User with username 'test.admin' already exists\"\n}"
+						},
+						{
+							"name": "Validation Error",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"companyName\": \"\",\n  \"adminUsername\": \"test\",\n  \"adminEmail\": \"invalid-email\",\n  \"adminPassword\": \"123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/companies/register-with-admin",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"companies",
+										"register-with-admin"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"timestamp\": \"2026-02-06T18:30:45.123+00:00\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"Validation failed\",\n  \"path\": \"/api/companies/register-with-admin\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get All Companies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies"
+							]
+						},
+						"description": "Retrieves all registered companies (non-archived)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Company by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"1"
+							]
+						},
+						"description": "Retrieves a company by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Company by Code",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/code/ACME001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"code",
+								"ACME001"
+							]
+						},
+						"description": "Retrieves a company by its unique company code"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Companies by Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/status/ACTIVE",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"status",
+								"ACTIVE"
+							]
+						},
+						"description": "Retrieves companies filtered by status (ACTIVE, INACTIVE, SUSPENDED)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Company",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Acme Corporation Updated\",\n  \"email\": \"contact@acmecorp.com\",\n  \"phone\": \"555-0200\",\n  \"website\": \"https://www.acmecorp.com\",\n  \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"1"
+							]
+						},
+						"description": "Updates an existing company's information"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Company (Soft Delete)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/companies/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"companies",
+								"1"
+							]
+						},
+						"description": "Soft deletes a company by archiving it"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Employee with Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Williams\",\n  \"contactDetailsCity\": \"San Francisco\",\n  \"contactDetailsPhone\": \"555-222-3333\",\n  \"employeeNumber\": \"EMP004\",\n  \"employeeType\": 1,\n  \"companyId\": 1,\n  \"userName\": \"alice.williams\",\n  \"password\": \"SecurePassword123\",\n  \"roleName\": \"ROLE_EMPLOYEE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Creates employee with user account and company assignment. Company reference is optional."
+					},
+					"response": []
+				}
+			],
+			"description": "Company registration and management endpoints"
 		},
 		{
 			"name": "PassProtect",
@@ -527,6 +1305,18 @@
 			"key": "baseUrl",
 			"value": "http://localhost:8080",
 			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string",
+			"description": "JWT token obtained from login endpoint - automatically populated"
+		},
+		{
+			"key": "created_employee_id",
+			"value": "",
+			"type": "string",
+			"description": "ID of the last created employee for testing purposes"
 		}
 	]
 }
