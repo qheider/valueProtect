@@ -408,6 +408,35 @@
 						"description": "**ADMIN ONLY**: Retrieves all employees from a specific company. Only accessible to admin users who belong to the same company.\n\n**Security**: Admin can only view employees from their own company."
 					},
 					"response": []
+				},
+				{
+					"name": "Create Employee with Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Williams\",\n  \"contactDetailsCity\": \"San Francisco\",\n  \"contactDetailsPhone\": \"555-222-3333\",\n  \"employeeNumber\": \"EMP004\",\n  \"employeeType\": 1,\n  \"companyId\": 1,\n  \"userName\": \"alice.williams\",\n  \"password\": \"SecurePassword123\",\n  \"roleName\": \"ROLE_EMPLOYEE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "Creates employee with user account and company assignment. Company reference is optional."
+					},
+					"response": []
 				}
 			],
 			"description": "Employee management endpoints - Admin authentication required for employee creation"
