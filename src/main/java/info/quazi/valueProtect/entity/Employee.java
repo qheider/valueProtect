@@ -1,6 +1,8 @@
 package info.quazi.valueProtect.entity;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "employee")
@@ -47,6 +49,9 @@ public class Employee extends BaseEntity {
 
     @Column(name = "empPicture_name", length = 255)
     private String empPictureName;
+
+    @OneToMany(mappedBy = "appraiser", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Appraisal> appraisals = new ArrayList<>();
 
     public String getContactDetailsCity() {
         return contactDetailsCity;
@@ -150,5 +155,13 @@ public class Employee extends BaseEntity {
 
     public void setEmpPictureName(String empPictureName) {
         this.empPictureName = empPictureName;
+    }
+
+    public List<Appraisal> getAppraisals() {
+        return appraisals;
+    }
+
+    public void setAppraisals(List<Appraisal> appraisals) {
+        this.appraisals = appraisals;
     }
 }
