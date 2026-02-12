@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "valueprotect-collection-001",
 		"name": "ValueProtect API",
-		"description": "API collection for ValueProtect application - Employee management APIs with admin-only employee creation",
+		"description": "API collection for ValueProtect application - Employee management and Property Appraisal APIs with company-level security and document management",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -1251,6 +1251,373 @@
 			"description": "Spring Boot Actuator endpoints (no authentication required)"
 		},
 		{
+			"name": "Appraisals",
+			"item": [
+				{
+					"name": "Create Appraisal with New Property",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Store appraisal ID for subsequent requests",
+									"if (pm.response.code === 201) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.appraisalId) {",
+									"        pm.collectionVariables.set('created_appraisal_id', responseJson.appraisalId);",
+									"        console.log('Appraisal ID stored: ' + responseJson.appraisalId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"property\": {\n    \"newProperty\": {\n      \"apn\": \"123-456-789\",\n      \"addressLine1\": \"123 Main Street\",\n      \"city\": \"Anytown\",\n      \"stateProvince\": \"CA\",\n      \"zipPostalCode\": \"12345\",\n      \"propertyType\": \"SINGLE_FAMILY\",\n      \"yearBuilt\": 2020,\n      \"lotSizeSqft\": 7500.00,\n      \"livingAreaSqft\": 2500.00,\n      \"features\": {\n        \"bedroomCount\": 4,\n        \"bathroomCount\": 2.5,\n        \"basementType\": \"Full\",\n        \"garageSpaces\": 2,\n        \"hvacType\": \"Central Air\",\n        \"exteriorMaterial\": \"Brick\",\n        \"conditionRating\": \"A1\",\n        \"qualityRating\": \"A1\"\n      }\n    }\n  },\n  \"effectiveDate\": \"2024-01-15\",\n  \"reportDate\": \"2024-01-20\",\n  \"appraisedValue\": 450000.00,\n  \"purpose\": \"Purchase\",\n  \"status\": \"DRAFT\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals"
+							]
+						},
+						"description": "Create a new appraisal with a new property. The property and its features will be created automatically."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Appraisal with Existing Property",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"property\": {\n    \"existingPropertyId\": \"{{existing_property_id}}\"\n  },\n  \"effectiveDate\": \"2024-02-01\",\n  \"reportDate\": \"2024-02-05\",\n  \"appraisedValue\": 485000.00,\n  \"purpose\": \"Refinance\",\n  \"status\": \"DRAFT\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals"
+							]
+						},
+						"description": "Create a new appraisal using an existing property. Set the existing_property_id variable with a valid property ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Appraisals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals"
+							]
+						},
+						"description": "Get all appraisals. Admin users see all company appraisals, regular users see only their own."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appraisal by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}"
+							]
+						},
+						"description": "Get a specific appraisal by ID. Uses the appraisal ID from the create request."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Appraisal",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"effectiveDate\": \"2024-01-16\",\n  \"reportDate\": \"2024-01-21\",\n  \"appraisedValue\": 455000.00,\n  \"purpose\": \"Refinance\",\n  \"status\": \"REVIEW\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}"
+							]
+						},
+						"description": "Update an existing appraisal. Only the appraiser or admin can modify appraisals."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Appraisal",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}"
+							]
+						},
+						"description": "Delete an appraisal and all associated documents. Only the appraiser or admin can delete appraisals."
+					},
+					"response": []
+				}
+			],
+			"description": "Property appraisal CRUD operations with company-level security"
+		},
+		{
+			"name": "Appraisal Documents",
+			"item": [
+				{
+					"name": "Upload Document - Title Deed",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Store document ID for subsequent requests",
+									"if (pm.response.code === 201) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.documentId) {",
+									"        pm.collectionVariables.set('created_document_id', responseJson.documentId);",
+									"        console.log('Document ID stored: ' + responseJson.documentId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "sample-title-deed.pdf",
+									"description": "Upload a sample PDF file as title deed"
+								},
+								{
+									"key": "documentType",
+									"value": "TITLE_DEED",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}/documents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}",
+								"documents"
+							]
+						},
+						"description": "Upload a title deed document. Choose a PDF file to upload."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Document - Property Photo",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "sample-property-photo.jpg",
+									"description": "Upload a sample image file as property photo"
+								},
+								{
+									"key": "documentType",
+									"value": "PROPERTY_PHOTO",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}/documents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}",
+								"documents"
+							]
+						},
+						"description": "Upload a property photo. Choose an image file to upload."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Document - Floor Plan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "sample-floor-plan.pdf",
+									"description": "Upload a sample PDF file as floor plan"
+								},
+								{
+									"key": "documentType",
+									"value": "FLOOR_PLAN",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}/documents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}",
+								"documents"
+							]
+						},
+						"description": "Upload a floor plan document. Choose a PDF or image file to upload."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appraisal Documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}/documents",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}",
+								"documents"
+							]
+						},
+						"description": "Get all documents associated with an appraisal."
+					},
+					"response": []
+				},
+				{
+					"name": "Download Document",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}/documents/download/{{filename}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}",
+								"documents",
+								"download",
+								"{{filename}}"
+							]
+						},
+						"description": "Download a specific document file. Replace {{filename}} with the actual filename from the document list."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Document",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/documents/{{created_document_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"{{created_document_id}}"
+							]
+						},
+						"description": "Delete a specific document. Only the appraiser or admin can delete documents."
+					},
+					"response": []
+				}
+			],
+			"description": "Document upload and management for appraisals"
+		},
+		{
 			"name": "Swagger",
 			"item": [
 				{
@@ -1317,6 +1684,30 @@
 			"value": "",
 			"type": "string",
 			"description": "ID of the last created employee for testing purposes"
+		},
+		{
+			"key": "created_appraisal_id",
+			"value": "",
+			"type": "string",
+			"description": "ID of the last created appraisal for testing purposes"
+		},
+		{
+			"key": "created_document_id",
+			"value": "",
+			"type": "string",
+			"description": "ID of the last uploaded document for testing purposes"
+		},
+		{
+			"key": "existing_property_id",
+			"value": "",
+			"type": "string",
+			"description": "ID of an existing property for creating appraisals"
+		},
+		{
+			"key": "filename",
+			"value": "",
+			"type": "string",
+			"description": "Filename for document download testing"
 		}
 	]
 }

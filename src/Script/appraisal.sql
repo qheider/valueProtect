@@ -25,7 +25,6 @@ CREATE TABLE property_features (
     FOREIGN KEY (property_id) REFERENCES properties(property_id) ON DELETE CASCADE
 );
 
-DROP TABLE IF EXISTS appraisals;
 CREATE TABLE appraisals (
     appraisal_id CHAR(36) PRIMARY KEY,
     property_id CHAR(36) NOT NULL,
