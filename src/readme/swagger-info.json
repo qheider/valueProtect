@@ -1,0 +1,2083 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "ValueProtect API",
+    "description": "ValueProtect Backend API Documentation",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Employee",
+      "description": "Employee management APIs"
+    },
+    {
+      "name": "Authentication",
+      "description": "Authentication and authorization endpoints"
+    },
+    {
+      "name": "User",
+      "description": "User management APIs"
+    },
+    {
+      "name": "Company",
+      "description": "Company registration and management APIs"
+    },
+    {
+      "name": "Appraisal Management",
+      "description": "CRUD operations for property appraisals with company-level security"
+    }
+  ],
+  "paths": {
+    "/api/companies/{id}": {
+      "get": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Get company by ID",
+        "description": "Retrieves a company by its ID",
+        "operationId": "getCompanyById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Update company",
+        "description": "Updates an existing company's information",
+        "operationId": "updateCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Company"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Delete company (soft delete)",
+        "description": "Soft deletes a company by archiving it",
+        "operationId": "deleteCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/appraisals/{appraisalId}": {
+      "get": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Get appraisal by ID",
+        "description": "Retrieve a specific appraisal by its ID. Access is restricted to the company of the logged-in employee.",
+        "operationId": "getAppraisal",
+        "parameters": [
+          {
+            "name": "appraisalId",
+            "in": "path",
+            "description": "Appraisal ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Appraisal not found or access denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Appraisal found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Update appraisal",
+        "description": "Update an existing appraisal. Only the original appraiser or admin can modify appraisals.",
+        "operationId": "updateAppraisal",
+        "parameters": [
+          {
+            "name": "appraisalId",
+            "in": "path",
+            "description": "Appraisal ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAppraisalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Appraisal not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Appraisal updated successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Delete appraisal",
+        "description": "Delete an appraisal and all associated documents. Only the original appraiser or admin can delete appraisals.",
+        "operationId": "deleteAppraisal",
+        "parameters": [
+          {
+            "name": "appraisalId",
+            "in": "path",
+            "description": "Appraisal ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Appraisal not found"
+          },
+          "204": {
+            "description": "Appraisal deleted successfully"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/employees": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "summary": "Get all active employees",
+        "description": "Retrieves a list of all non-archived employees",
+        "operationId": "getActiveEmployees",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Employee"
+        ],
+        "summary": "Create a new employee",
+        "description": "Creates a new employee record for the admin's own company. **Security Rules:** 1. Only admin users can create employees. 2. Admin can only create employees for their own company. 3. If user's employee record has no company, creation is denied. 4. The new employee will automatically be assigned to the admin's company.",
+        "operationId": "createEmployee",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies": {
+      "get": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Get all companies",
+        "description": "Retrieves all registered companies",
+        "operationId": "getAllCompanies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Company"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Register a new company",
+        "description": "Creates a new company registration",
+        "operationId": "createCompany",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Company"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/register-with-admin": {
+      "post": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Register company with admin user",
+        "description": "Creates a new company along with an admin user and employee record. This API allows any client to create a complete company setup with an administrative user.",
+        "operationId": "registerCompanyWithAdminUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCompanyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterCompanyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "User logout",
+        "description": "Logout user (client should discard the JWT token)",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "User login",
+        "description": "Authenticate user and return JWT token for API access",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appraisals": {
+      "get": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Get appraisals list",
+        "description": "Get list of appraisals scoped to the logged-in user. Admin users can see all company appraisals, regular users see only their own.",
+        "operationId": "getAppraisals",
+        "responses": {
+          "200": {
+            "description": "Appraisals retrieved successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppraisalDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppraisalDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Create new appraisal",
+        "description": "Create a new property appraisal. The appraisal will be associated with the logged-in employee's company. Property can be existing or newly created.",
+        "operationId": "createAppraisal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppraisalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Appraisal created successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/appraisals/{appraisalId}/documents": {
+      "get": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Get appraisal documents",
+        "description": "Retrieve all documents associated with an appraisal.",
+        "operationId": "getAppraisalDocuments",
+        "parameters": [
+          {
+            "name": "appraisalId",
+            "in": "path",
+            "description": "Appraisal ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Appraisal not found or access denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppraisalDocumentDto"
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Documents retrieved successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppraisalDocumentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Upload appraisal document",
+        "description": "Upload a supporting document for an appraisal. Supported formats: PDF, images, Word documents, Excel files.",
+        "operationId": "uploadDocument",
+        "parameters": [
+          {
+            "name": "appraisalId",
+            "in": "path",
+            "description": "Appraisal ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentType",
+            "in": "query",
+            "description": "Type of document",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "TITLE_DEED",
+                "FLOOR_PLAN",
+                "PLAT_MAP",
+                "PROPERTY_PHOTO",
+                "TAX_RECORD",
+                "OTHER"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "Document file to upload",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDocumentDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Document uploaded successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file or request data",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppraisalDocumentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get user by ID",
+        "description": "Returns a user by their ID",
+        "operationId": "getUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/username/{username}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get user by username",
+        "description": "Returns a user by their username",
+        "operationId": "getUserByUsername",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/email/{email}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get user by email",
+        "description": "Returns a user by their email",
+        "operationId": "getUserByEmail",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/employees/company/{companyId}": {
+      "get": {
+        "tags": [
+          "Employee"
+        ],
+        "summary": "Get employees by company",
+        "description": "Retrieves all employees from a specific company. **Security Rules:** 1. Only admin users can access this endpoint. 2. Admin can only view employees from their own company. 3. If user's employee record has no company, access is denied. 4. If user tries to access another company's employees, access is denied.",
+        "operationId": "getEmployeesByCompany",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/status/{status}": {
+      "get": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Get companies by status",
+        "description": "Retrieves companies filtered by status (ACTIVE, INACTIVE, SUSPENDED)",
+        "operationId": "getCompaniesByStatus",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Company"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/code/{companyCode}": {
+      "get": {
+        "tags": [
+          "Company"
+        ],
+        "summary": "Get company by code",
+        "description": "Retrieves a company by its unique company code",
+        "operationId": "getCompanyByCode",
+        "parameters": [
+          {
+            "name": "companyCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appraisals/{appraisalId}/documents/download/{filename}": {
+      "get": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Download appraisal document",
+        "description": "Download a specific document file associated with an appraisal.",
+        "operationId": "downloadDocument",
+        "parameters": [
+          {
+            "name": "appraisalId",
+            "in": "path",
+            "description": "Appraisal ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "description": "File name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File downloaded successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found or access denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/appraisals/documents/{documentId}": {
+      "delete": {
+        "tags": [
+          "Appraisal Management"
+        ],
+        "summary": "Delete appraisal document",
+        "description": "Delete a specific document from an appraisal. Only the original appraiser or admin can delete documents.",
+        "operationId": "deleteDocument",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "description": "Document ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Access denied"
+          },
+          "404": {
+            "description": "Document not found"
+          },
+          "204": {
+            "description": "Document deleted successfully"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Appraisal": {
+        "type": "object",
+        "properties": {
+          "appraisalId": {
+            "type": "string"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reportDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "appraisedValue": {
+            "type": "number"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "REVIEW",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "finalReportUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "property": {
+            "$ref": "#/components/schemas/Property"
+          },
+          "appraiser": {
+            "$ref": "#/components/schemas/Employee"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppraisalDocument"
+            }
+          }
+        }
+      },
+      "AppraisalDocument": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "appraisalId": {
+            "type": "string"
+          },
+          "documentType": {
+            "type": "string",
+            "enum": [
+              "TITLE_DEED",
+              "FLOOR_PLAN",
+              "PLAT_MAP",
+              "PROPERTY_PHOTO",
+              "TAX_RECORD",
+              "OTHER"
+            ]
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileUrl": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "appraisal": {
+            "$ref": "#/components/schemas/Appraisal"
+          }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "companyCode": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "addressLine2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "taxId": {
+            "type": "string"
+          },
+          "registrationNumber": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdByUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "employees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Employee"
+            }
+          }
+        }
+      },
+      "Employee": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contactDetailsCity": {
+            "type": "string"
+          },
+          "contactDetailsPhone": {
+            "type": "string"
+          },
+          "contactDetailsSecondaryPhone": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "employeeNumber": {
+            "type": "string"
+          },
+          "employeeType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdByUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "company": {
+            "$ref": "#/components/schemas/Company"
+          },
+          "empPictureContentType": {
+            "type": "string"
+          },
+          "empPictureData": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "byte"
+            }
+          },
+          "empPictureName": {
+            "type": "string"
+          },
+          "appraisals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Appraisal"
+            }
+          }
+        }
+      },
+      "Property": {
+        "type": "object",
+        "properties": {
+          "propertyId": {
+            "type": "string"
+          },
+          "apn": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "stateProvince": {
+            "type": "string"
+          },
+          "zipPostalCode": {
+            "type": "string"
+          },
+          "propertyType": {
+            "type": "string",
+            "enum": [
+              "SINGLE_FAMILY",
+              "CONDO",
+              "MULTI_FAMILY",
+              "COMMERCIAL",
+              "INDUSTRIAL"
+            ]
+          },
+          "yearBuilt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotSizeSqft": {
+            "type": "number"
+          },
+          "livingAreaSqft": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "propertyFeatures": {
+            "$ref": "#/components/schemas/PropertyFeatures"
+          },
+          "appraisals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Appraisal"
+            }
+          }
+        }
+      },
+      "PropertyFeatures": {
+        "type": "object",
+        "properties": {
+          "featureId": {
+            "type": "string"
+          },
+          "bedroomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bathroomCount": {
+            "type": "number"
+          },
+          "basementType": {
+            "type": "string"
+          },
+          "garageSpaces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hvacType": {
+            "type": "string"
+          },
+          "exteriorMaterial": {
+            "type": "string"
+          },
+          "conditionRating": {
+            "type": "string"
+          },
+          "qualityRating": {
+            "type": "string"
+          },
+          "property": {
+            "$ref": "#/components/schemas/Property"
+          },
+          "propertyId": {
+            "type": "string"
+          }
+        }
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdByUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "users": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "email": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "lastLogin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "password": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "createdByUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "user": {
+            "type": "string"
+          },
+          "roles": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          }
+        }
+      },
+      "UpdateAppraisalRequest": {
+        "type": "object",
+        "properties": {
+          "effectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reportDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "appraisedValue": {
+            "type": "number"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "REVIEW",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "finalReportUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AppraisalDocumentDto": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "appraisalId": {
+            "type": "string"
+          },
+          "documentType": {
+            "type": "string",
+            "enum": [
+              "TITLE_DEED",
+              "FLOOR_PLAN",
+              "PLAT_MAP",
+              "PROPERTY_PHOTO",
+              "TAX_RECORD",
+              "OTHER"
+            ]
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileUrl": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AppraisalDto": {
+        "type": "object",
+        "properties": {
+          "appraisalId": {
+            "type": "string"
+          },
+          "propertyId": {
+            "type": "string"
+          },
+          "appraiserId": {
+            "type": "string"
+          },
+          "appraiserName": {
+            "type": "string"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reportDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "appraisedValue": {
+            "type": "number"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "REVIEW",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "finalReportUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "property": {
+            "$ref": "#/components/schemas/PropertyDto"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppraisalDocumentDto"
+            }
+          },
+          "documentCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PropertyDto": {
+        "type": "object",
+        "properties": {
+          "propertyId": {
+            "type": "string"
+          },
+          "apn": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "stateProvince": {
+            "type": "string"
+          },
+          "zipPostalCode": {
+            "type": "string"
+          },
+          "propertyType": {
+            "type": "string",
+            "enum": [
+              "SINGLE_FAMILY",
+              "CONDO",
+              "MULTI_FAMILY",
+              "COMMERCIAL",
+              "INDUSTRIAL"
+            ]
+          },
+          "yearBuilt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotSizeSqft": {
+            "type": "number"
+          },
+          "livingAreaSqft": {
+            "type": "number"
+          },
+          "features": {
+            "$ref": "#/components/schemas/PropertyFeaturesDto"
+          }
+        }
+      },
+      "PropertyFeaturesDto": {
+        "type": "object",
+        "properties": {
+          "featureId": {
+            "type": "string"
+          },
+          "bedroomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bathroomCount": {
+            "type": "number"
+          },
+          "basementType": {
+            "type": "string"
+          },
+          "garageSpaces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hvacType": {
+            "type": "string"
+          },
+          "exteriorMaterial": {
+            "type": "string"
+          },
+          "conditionRating": {
+            "type": "string"
+          },
+          "qualityRating": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateEmployeeRequest": {
+        "required": [
+          "firstName",
+          "lastName"
+        ],
+        "type": "object",
+        "properties": {
+          "contactDetailsCity": {
+            "type": "string"
+          },
+          "contactDetailsPhone": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string"
+          },
+          "contactDetailsSecondaryPhone": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string"
+          },
+          "firstName": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "lastName": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "employeeNumber": {
+            "type": "string"
+          },
+          "employeeType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userName": {
+            "maxLength": 50,
+            "minLength": 3,
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 2147483647,
+            "minLength": 6,
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          }
+        }
+      },
+      "EmployeeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contactDetailsCity": {
+            "type": "string"
+          },
+          "contactDetailsPhone": {
+            "type": "string"
+          },
+          "contactDetailsSecondaryPhone": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "employeeNumber": {
+            "type": "string"
+          },
+          "employeeType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "empPictureName": {
+            "type": "string"
+          },
+          "empPictureContentType": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterCompanyRequest": {
+        "required": [
+          "adminEmail",
+          "adminPassword",
+          "adminUsername",
+          "companyName"
+        ],
+        "type": "object",
+        "properties": {
+          "companyName": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "companyCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "companyEmail": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "companyPhone": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "companyWebsite": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "addressLine1": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "addressLine2": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "city": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "state": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "country": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "postalCode": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string"
+          },
+          "taxId": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "registrationNumber": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "adminUsername": {
+            "maxLength": 250,
+            "minLength": 0,
+            "type": "string"
+          },
+          "adminEmail": {
+            "maxLength": 250,
+            "minLength": 0,
+            "type": "string"
+          },
+          "adminPassword": {
+            "maxLength": 255,
+            "minLength": 6,
+            "type": "string"
+          },
+          "adminFirstName": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "adminLastName": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "adminPhone": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
+      "RegisterCompanyResponse": {
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "companyCode": {
+            "type": "string"
+          },
+          "companyStatus": {
+            "type": "string"
+          },
+          "adminUserId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "adminUsername": {
+            "type": "string"
+          },
+          "adminEmail": {
+            "type": "string"
+          },
+          "employeeId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "LoginRequest": {
+        "required": [
+          "password",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateAppraisalRequest": {
+        "required": [
+          "appraisedValue",
+          "effectiveDate",
+          "property",
+          "purpose",
+          "reportDate"
+        ],
+        "type": "object",
+        "properties": {
+          "property": {
+            "$ref": "#/components/schemas/PropertyInfo"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reportDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "appraisedValue": {
+            "type": "number"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "REVIEW",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "finalReportUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "CreatePropertyRequest": {
+        "required": [
+          "addressLine1",
+          "apn",
+          "city",
+          "propertyType",
+          "stateProvince",
+          "zipPostalCode"
+        ],
+        "type": "object",
+        "properties": {
+          "apn": {
+            "type": "string"
+          },
+          "addressLine1": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "stateProvince": {
+            "type": "string"
+          },
+          "zipPostalCode": {
+            "type": "string"
+          },
+          "propertyType": {
+            "type": "string",
+            "enum": [
+              "SINGLE_FAMILY",
+              "CONDO",
+              "MULTI_FAMILY",
+              "COMMERCIAL",
+              "INDUSTRIAL"
+            ]
+          },
+          "yearBuilt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotSizeSqft": {
+            "type": "number"
+          },
+          "livingAreaSqft": {
+            "type": "number"
+          },
+          "features": {
+            "$ref": "#/components/schemas/PropertyFeaturesDto"
+          }
+        }
+      },
+      "PropertyInfo": {
+        "type": "object",
+        "properties": {
+          "existingPropertyId": {
+            "type": "string"
+          },
+          "newProperty": {
+            "$ref": "#/components/schemas/CreatePropertyRequest"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
