@@ -46,7 +46,7 @@ public class AppraisalController {
     @ApiResponse(responseCode = "201", description = "Appraisal created successfully")
     @ApiResponse(responseCode = "400", description = "Invalid request data")
     @ApiResponse(responseCode = "401", description = "Unauthorized")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<AppraisalDto> createAppraisal(
             @Valid @RequestBody CreateAppraisalRequest request) {
         
@@ -62,7 +62,7 @@ public class AppraisalController {
     @ApiResponse(responseCode = "200", description = "Appraisal found")
     @ApiResponse(responseCode = "404", description = "Appraisal not found or access denied")
     @ApiResponse(responseCode = "401", description = "Unauthorized")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<AppraisalDto> getAppraisal(
             @PathVariable @Parameter(description = "Appraisal ID") String appraisalId) {
         
@@ -77,7 +77,7 @@ public class AppraisalController {
     )
     @ApiResponse(responseCode = "200", description = "Appraisals retrieved successfully")
     @ApiResponse(responseCode = "401", description = "Unauthorized")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<List<AppraisalDto>> getAppraisals() {
         List<AppraisalDto> appraisals = appraisalService.getAppraisals();
         return ResponseEntity.ok(appraisals);
@@ -92,7 +92,7 @@ public class AppraisalController {
     @ApiResponse(responseCode = "400", description = "Invalid request data")
     @ApiResponse(responseCode = "403", description = "Access denied")
     @ApiResponse(responseCode = "404", description = "Appraisal not found")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<AppraisalDto> updateAppraisal(
             @PathVariable @Parameter(description = "Appraisal ID") String appraisalId,
             @Valid @RequestBody UpdateAppraisalRequest request) {
@@ -109,7 +109,7 @@ public class AppraisalController {
     @ApiResponse(responseCode = "204", description = "Appraisal deleted successfully")
     @ApiResponse(responseCode = "403", description = "Access denied")
     @ApiResponse(responseCode = "404", description = "Appraisal not found")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<Void> deleteAppraisal(
             @PathVariable @Parameter(description = "Appraisal ID") String appraisalId) {
         
@@ -127,7 +127,7 @@ public class AppraisalController {
     @ApiResponse(responseCode = "201", description = "Document uploaded successfully")
     @ApiResponse(responseCode = "400", description = "Invalid file or request data")
     @ApiResponse(responseCode = "403", description = "Access denied")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<AppraisalDocumentDto> uploadDocument(
             @PathVariable @Parameter(description = "Appraisal ID") String appraisalId,
             @RequestParam("file") @Parameter(description = "Document file to upload") MultipartFile file,
@@ -148,7 +148,7 @@ public class AppraisalController {
     )
     @ApiResponse(responseCode = "200", description = "Documents retrieved successfully")
     @ApiResponse(responseCode = "404", description = "Appraisal not found or access denied")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<List<AppraisalDocumentDto>> getAppraisalDocuments(
             @PathVariable @Parameter(description = "Appraisal ID") String appraisalId) {
         
@@ -163,7 +163,7 @@ public class AppraisalController {
     )
     @ApiResponse(responseCode = "200", description = "File downloaded successfully")
     @ApiResponse(responseCode = "404", description = "File not found or access denied")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<Resource> downloadDocument(
             @PathVariable @Parameter(description = "Appraisal ID") String appraisalId,
             @PathVariable @Parameter(description = "File name") String filename) {
@@ -205,7 +205,7 @@ public class AppraisalController {
     @ApiResponse(responseCode = "204", description = "Document deleted successfully")
     @ApiResponse(responseCode = "403", description = "Access denied")
     @ApiResponse(responseCode = "404", description = "Document not found")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
     public ResponseEntity<Void> deleteDocument(
             @PathVariable @Parameter(description = "Document ID") String documentId) {
         

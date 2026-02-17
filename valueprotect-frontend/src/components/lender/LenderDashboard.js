@@ -14,6 +14,7 @@ import AddIcon from '@mui/icons-material/Add';
 import Navbar from '../common/Navbar';
 import AppraisalList from './AppraisalList';
 import CreateAppraisalForm from './CreateAppraisalForm';
+import AppraisalDetailsDialog from './AppraisalDetailsDialog';
 import { appraisalService } from '../../services/appraisalService';
 import { APPRAISAL_STATUS } from '../../utils/constants';
 
@@ -23,6 +24,8 @@ const LenderDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
+  const [selectedAppraisal, setSelectedAppraisal] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -56,8 +59,8 @@ const LenderDashboard = () => {
   };
 
   const handleViewDetails = (appraisal) => {
-    // TODO: Navigate to details page or open details modal
-    console.log('View details:', appraisal);
+    setSelectedAppraisal(appraisal);
+    setOpenDetailsDialog(true);
   };
 
   const handleDownloadDocuments = async (appraisal) => {
@@ -141,6 +144,12 @@ const LenderDashboard = () => {
             onCancel={() => setOpenCreateDialog(false)}
           />
         </Dialog>
+
+        <AppraisalDetailsDialog
+          open={openDetailsDialog}
+          onClose={() => setOpenDetailsDialog(false)}
+          appraisal={selectedAppraisal}
+        />
       </Container>
     </>
   );
