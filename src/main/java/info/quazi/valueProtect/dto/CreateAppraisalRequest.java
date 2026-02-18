@@ -21,7 +21,6 @@ public class CreateAppraisalRequest {
     @NotNull(message = "Report date is required")
     private LocalDate reportDate;
 
-    @NotNull(message = "Appraised value is required")
     @Positive(message = "Appraised value must be positive")
     private BigDecimal appraisedValue;
 
