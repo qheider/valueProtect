@@ -1,0 +1,54 @@
+settring up an appraisal company
+
+log in as
+ {
+  "username": "admin",
+  "password": "Heartcore123!"
+}
+
+now companies->register companies with admin user
+{
+  "companyName": "ABC Appraisal Services",
+  "companyCode": "ABC001",
+  "companyEmail": "infO@ABC.com",
+  "companyPhone": "+1-555-123-4567",
+  "companyWebsite": "https://www.abc.com",
+  "addressLine1": "123 abc Street",
+  "addressLine2": "Suite 456",
+  "city": "Toronto",
+  "state": "Ontario",
+  "country": "Canada",
+  "postalCode": "12345",
+  "taxId": "TAX-123-456-789",
+  "registrationNumber": "REG-2024-TEST",
+  "description": "Test corporation for demo purposes",
+  "adminUsername": "abc.admin",
+  "adminEmail": "admin@abc.com",
+  "adminPassword": "appraisal123!",
+  "adminFirstName": "Robert",
+  "adminLastName": "Frost",
+  "adminPhone": "+1-555-123-4568"
+}
+
+now log in as for Appraiser Admin to create Appraise
+{
+  "username": "abc.admin",
+  "password": "appraisal123!"
+}
+
+create Appriser using 
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "contactDetailsCity": "New York",
+  "contactDetailsPhone": "123-456-7890",
+  "contactDetailsSecondaryPhone": "098-765-4321",
+  "employeeNumber": "EMP{{$randomInt}}",
+  "employeeType": 1,
+  "userName": "abc.appraiser",
+  "password": "SecurePassword123",
+  "email": "john.doe.{{$randomInt}}@company.com",
+  "roleName": "appraiser"
+}
+
+
