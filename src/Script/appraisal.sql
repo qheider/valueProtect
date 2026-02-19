@@ -39,10 +39,11 @@ CREATE TABLE appraisals (
     FOREIGN KEY (property_id) REFERENCES properties(property_id) ON DELETE CASCADE
 );
 
+-- IMPORTANT: Enum values must match Java enum constants exactly (uppercase with underscores)
 CREATE TABLE appraisal_documents (
     document_id CHAR(36) PRIMARY KEY,
     appraisal_id CHAR(36) NOT NULL,
-    document_type ENUM('Title Deed', 'Floor Plan', 'Plat Map', 'Property Photo', 'Tax Record', 'Other') NOT NULL,
+    document_type ENUM('TITLE_DEED', 'FLOOR_PLAN', 'PLAT_MAP', 'PROPERTY_PHOTO', 'TAX_RECORD', 'OTHER') NOT NULL,
     file_name VARCHAR(255) NOT NULL,
     -- The absolute URL or path to the file server
     file_url VARCHAR(512) NOT NULL, 

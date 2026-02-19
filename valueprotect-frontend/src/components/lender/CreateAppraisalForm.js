@@ -87,15 +87,26 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
 
     setUploadProgress({ current: 0, total: selectedFiles.length });
     
+    const uploadErrors = [];
+    
     for (let i = 0; i < selectedFiles.length; i++) {
       const { file, documentType } = selectedFiles[i];
       try {
+        console.log(`Uploading file ${i + 1}/${selectedFiles.length}:`, file.name, 'Type:', documentType);
         await appraisalService.uploadDocument(appraisalId, file, documentType);
+        console.log(`Successfully uploaded: ${file.name}`);
         setUploadProgress({ current: i + 1, total: selectedFiles.length });
       } catch (err) {
         console.error('Failed to upload file:', file.name, err);
+        const errorMsg = err.response?.data?.message || err.message || 'Upload failed';
+        uploadErrors.push(`${file.name}: ${errorMsg}`);
         // Continue with other files even if one fails
       }
+    }
+    
+    if (uploadErrors.length > 0) {
+      console.warn('Some files failed to upload:', uploadErrors);
+      // You could optionally show these errors to the user
     }
   };
 

@@ -3,6 +3,8 @@ package info.quazi.valueProtect.service;
 import info.quazi.valueProtect.dto.*;
 import info.quazi.valueProtect.entity.*;
 import info.quazi.valueProtect.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class AppraisalService {
+
+    private static final Logger log = LoggerFactory.getLogger(AppraisalService.class);
 
     private final AppraisalRepository appraisalRepository;
     private final PropertyRepository propertyRepository;
@@ -152,28 +156,46 @@ public class AppraisalService {
     public AppraisalDocumentDto uploadDocument(String appraisalId, 
                                              MultipartFile file, 
                                              AppraisalDocument.DocumentType documentType) throws IOException {
+        log.info("=== Starting document upload ===");
+        log.info("Appraisal ID: {}", appraisalId);
+        log.info("Filename: {}", file.getOriginalFilename());
+        log.info("Document Type: {}", documentType);
+        log.info("File Size: {} bytes", file.getSize());
+        
         // Verify access to appraisal
         Long companyId = securityContextService.getCurrentCompanyId();
+        log.debug("Current company ID: {}", companyId);
+        
         Appraisal appraisal = appraisalRepository.findByAppraisalIdAndCompanyId(appraisalId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Appraisal not found or access denied"));
+        log.debug("Appraisal found and access verified");
         
         if (!canModifyAppraisal(appraisal)) {
+            log.warn("Access denied for user to modify appraisal: {}", appraisalId);
             throw new SecurityException("Access denied: You can only upload documents to your own appraisals");
         }
         
         // Upload file
+        log.info("Uploading file to filesystem...");
         String fileUrl = fileUploadService.uploadFile(file, appraisalId, documentType.getDisplayName());
+        log.info("File uploaded successfully, URL: {}", fileUrl);
         
         // Create document record
+        String documentId = UUID.randomUUID().toString();
+        log.debug("Creating document record with ID: {}", documentId);
+        
         AppraisalDocument document = new AppraisalDocument(
-                UUID.randomUUID().toString(), 
+                documentId, 
                 appraisalId, 
                 documentType
         );
         document.setFileName(file.getOriginalFilename());
         document.setFileUrl(fileUrl);
         
+        log.info("Saving document record to database...");
         AppraisalDocument savedDocument = appraisalDocumentRepository.save(document);
+        log.info("Document saved successfully with ID: {}", savedDocument.getDocumentId());
+        log.info("=== Document upload completed ===");
         
         return convertToDocumentDto(savedDocument);
     }
