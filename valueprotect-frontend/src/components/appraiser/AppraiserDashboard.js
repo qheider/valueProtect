@@ -12,6 +12,7 @@ import {
 import Navbar from '../common/Navbar';
 import AppraiserAppraisalList from './AppraiserAppraisalList';
 import UploadDocumentForm from './UploadDocumentForm';
+import AppraisalDetailsDialog from '../lender/AppraisalDetailsDialog';
 import { appraisalService } from '../../services/appraisalService';
 import { APPRAISAL_STATUS } from '../../utils/constants';
 
@@ -21,7 +22,9 @@ const AppraiserDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedAppraisal, setSelectedAppraisal] = useState(null);
+  const [selectedDetailsAppraisal, setSelectedDetailsAppraisal] = useState(null);
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -61,6 +64,11 @@ const AppraiserDashboard = () => {
   const handleUploadDocument = (appraisal) => {
     setSelectedAppraisal(appraisal);
     setOpenUploadDialog(true);
+  };
+
+  const handleViewDetails = (appraisal) => {
+    setSelectedDetailsAppraisal(appraisal);
+    setOpenDetailsDialog(true);
   };
 
   const handleUploadSuccess = () => {
@@ -113,12 +121,14 @@ const AppraiserDashboard = () => {
               <AppraiserAppraisalList
                 appraisals={filterAppraisalsByStatus(APPRAISAL_STATUS.DRAFT)}
                 onAccept={handleAcceptRequest}
+                onViewDetails={handleViewDetails}
                 emptyMessage="No new appraisal requests"
               />
             )}
             {activeTab === 1 && (
               <AppraiserAppraisalList
                 appraisals={filterAppraisalsByStatus(APPRAISAL_STATUS.REVIEW)}
+                onViewDetails={handleViewDetails}
                 onUpload={handleUploadDocument}
                 emptyMessage="No appraisals in progress"
               />
@@ -126,6 +136,7 @@ const AppraiserDashboard = () => {
             {activeTab === 2 && (
               <AppraiserAppraisalList
                 appraisals={filterAppraisalsByStatus(APPRAISAL_STATUS.COMPLETED)}
+                onViewDetails={handleViewDetails}
                 onViewDocuments={handleViewDocuments}
                 emptyMessage="No completed appraisals"
               />
@@ -147,6 +158,12 @@ const AppraiserDashboard = () => {
             />
           )}
         </Dialog>
+
+        <AppraisalDetailsDialog
+          open={openDetailsDialog}
+          onClose={() => setOpenDetailsDialog(false)}
+          appraisal={selectedDetailsAppraisal}
+        />
       </Container>
     </>
   );

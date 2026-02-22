@@ -4,8 +4,9 @@ import AppraisalCard from '../common/AppraisalCard';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
-const AppraiserAppraisalList = ({ appraisals, onAccept, onUpload, onViewDocuments, emptyMessage }) => {
+const AppraiserAppraisalList = ({ appraisals, onAccept, onViewDetails, onUpload, onViewDocuments, emptyMessage }) => {
   if (!appraisals || appraisals.length === 0) {
     return (
       <Box display="flex" justifyContent="center" py={4}>
@@ -18,6 +19,15 @@ const AppraiserAppraisalList = ({ appraisals, onAccept, onUpload, onViewDocument
 
   const getActionsForAppraisal = (appraisal) => {
     const actions = [];
+
+    if (onViewDetails) {
+      actions.push({
+        label: 'View Details',
+        onClick: onViewDetails,
+        icon: <VisibilityIcon />,
+        variant: 'outlined'
+      });
+    }
 
     if (onAccept) {
       actions.push({
