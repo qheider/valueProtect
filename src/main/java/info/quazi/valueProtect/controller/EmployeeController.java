@@ -32,6 +32,14 @@ public class EmployeeController {
         return ResponseEntity.ok(employees);
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
+    @Operation(summary = "Get current employee", description = "Retrieves details for the logged-in employee")
+    public ResponseEntity<EmployeeDto> getCurrentEmployee() {
+        EmployeeDto employee = employeeService.getCurrentEmployee();
+        return ResponseEntity.ok(employee);
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') || hasRole('admin')")
     @Operation(summary = "Create a new employee", description = "Creates a new employee record for the admin's own company. " +

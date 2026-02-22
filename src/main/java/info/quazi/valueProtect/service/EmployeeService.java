@@ -168,6 +168,14 @@ public class EmployeeService {
     }
 
     @Transactional(readOnly = true)
+    public EmployeeDto getCurrentEmployee() {
+        User authenticatedUser = getAuthenticatedUser();
+        Employee employee = employeeRepository.findByUser(authenticatedUser)
+            .orElseThrow(() -> new RuntimeException("No employee record found for authenticated user"));
+        return EmployeeDto.fromEntity(employee);
+    }
+
+    @Transactional(readOnly = true)
     public List<EmployeeDto> getEmployeesByCompany(Long companyId) {
         // Get authenticated user
         User authenticatedUser = getAuthenticatedUser();
