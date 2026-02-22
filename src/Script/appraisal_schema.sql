@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS appraisals (
 CREATE TABLE IF NOT EXISTS appraisal_documents (
     document_id CHAR(36) PRIMARY KEY,
     appraisal_id CHAR(36) NOT NULL,
-    document_type ENUM('TITLE_DEED', 'FLOOR_PLAN', 'PLAT_MAP', 'PROPERTY_PHOTO', 'TAX_RECORD', 'OTHER') NOT NULL,
+    document_type ENUM('APPRAISAL_REPORT', 'TITLE_DEED', 'FLOOR_PLAN', 'PLAT_MAP', 'PROPERTY_PHOTO', 'TAX_RECORD', 'OTHER') NOT NULL,
     file_name VARCHAR(255),
     file_url VARCHAR(512),
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

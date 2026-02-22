@@ -13,6 +13,7 @@ export const USER_ROLES = {
 };
 
 export const DOCUMENT_TYPES = {
+  APPRAISAL_REPORT: 'APPRAISAL_REPORT',
   TITLE_DEED: 'TITLE_DEED',
   FLOOR_PLAN: 'FLOOR_PLAN',
   PLAT_MAP: 'PLAT_MAP',
@@ -44,6 +45,7 @@ export const STATUS_COLORS = {
 };
 
 export const DOCUMENT_TYPE_LABELS = {
+  [DOCUMENT_TYPES.APPRAISAL_REPORT]: 'Appraisal Report',
   [DOCUMENT_TYPES.TITLE_DEED]: 'Title Deed',
   [DOCUMENT_TYPES.FLOOR_PLAN]: 'Floor Plan',
   [DOCUMENT_TYPES.PLAT_MAP]: 'Plat Map',

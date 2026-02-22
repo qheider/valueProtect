@@ -105,6 +105,7 @@ public class AppraisalDocument {
     }
 
     public enum DocumentType {
+        APPRAISAL_REPORT("Appraisal Report"),
         TITLE_DEED("Title Deed"),
         FLOOR_PLAN("Floor Plan"),
         PLAT_MAP("Plat Map"),

@@ -29,6 +29,7 @@ UPDATE appraisal_documents SET document_type = 'OTHER' WHERE document_type = 'Ot
 -- Step 5: Change back to ENUM with correct values
 ALTER TABLE appraisal_documents 
 MODIFY COLUMN document_type ENUM(
+    'APPRAISAL_REPORT',
     'TITLE_DEED',
     'FLOOR_PLAN', 
     'PLAT_MAP',
