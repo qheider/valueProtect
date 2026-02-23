@@ -41,7 +41,11 @@ public class AppraisalController {
     @PostMapping
     @Operation(
         summary = "Create new appraisal",
-        description = "Create a new property appraisal. The appraisal will be associated with the logged-in employee's company. Property can be existing or newly created."
+        description = "Create a new property appraisal with role-based employee assignment. " +
+                     "Admin: Can specify both appraiser and lender. " +
+                     "Lender: Can optionally specify appraiser, otherwise system assigns random available appraiser. " +
+                     "Appraiser: Automatically assigned as appraiser, can optionally specify lender. " +
+                     "Property can be existing or newly created."
     )
     @ApiResponse(responseCode = "201", description = "Appraisal created successfully")
     @ApiResponse(responseCode = "400", description = "Invalid request data")

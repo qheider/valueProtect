@@ -11,6 +11,8 @@ public class UpdateAppraisalRequest {
     
     private LocalDate reportDate;
     
+    private Long lenderId;
+    
     private BigDecimal appraisedValue;
     
     private String purpose;
@@ -69,5 +71,13 @@ public class UpdateAppraisalRequest {
 
     public void setFinalReportUrl(String finalReportUrl) {
         this.finalReportUrl = finalReportUrl;
+    }
+
+    public Long getLenderId() {
+        return lenderId;
+    }
+
+    public void setLenderId(Long lenderId) {
+        this.lenderId = lenderId;
     }
 }

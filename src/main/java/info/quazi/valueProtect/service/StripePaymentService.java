@@ -125,8 +125,9 @@ public class StripePaymentService {
             throw new SecurityException("Invalid Stripe webhook signature");
         }
 
-        if (stripeWebhookEventRepository.existsById(event.getId())) {
-            log.info("Ignoring duplicate Stripe event: {}", event.getId());
+        String eventId = event.getId();
+        if (eventId != null && stripeWebhookEventRepository.existsById(eventId)) {
+            log.info("Ignoring duplicate Stripe event: {}", eventId);
             return;
         }
 

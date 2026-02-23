@@ -25,6 +25,7 @@ public class AppraisalService {
     private final PropertyFeaturesRepository propertyFeaturesRepository;
     private final AppraisalDocumentRepository appraisalDocumentRepository;
     private final EmployeeRepository employeeRepository;
+    private final CompanyRepository companyRepository;
     private final SecurityContextService securityContextService;
     private final FileUploadService fileUploadService;
 
@@ -33,6 +34,7 @@ public class AppraisalService {
                            PropertyFeaturesRepository propertyFeaturesRepository,
                            AppraisalDocumentRepository appraisalDocumentRepository,
                            EmployeeRepository employeeRepository,
+                           CompanyRepository companyRepository,
                            SecurityContextService securityContextService,
                            FileUploadService fileUploadService) {
         this.appraisalRepository = appraisalRepository;
@@ -40,6 +42,7 @@ public class AppraisalService {
         this.propertyFeaturesRepository = propertyFeaturesRepository;
         this.appraisalDocumentRepository = appraisalDocumentRepository;
         this.employeeRepository = employeeRepository;
+        this.companyRepository = companyRepository;
         this.securityContextService = securityContextService;
         this.fileUploadService = fileUploadService;
     }
@@ -50,15 +53,84 @@ public class AppraisalService {
         Employee currentEmployee = employeeRepository.findById(Long.parseLong(currentEmployeeId))
             .orElseThrow(() -> new RuntimeException("Current employee not found"));
         
+        boolean isAdmin = securityContextService.isCurrentUserAdmin();
+        boolean isLender = securityContextService.isCurrentUserLender();
+        
         // Handle property creation or retrieval
         String propertyId = handleProperty(request.getProperty());
+        if (propertyId == null) {
+            throw new RuntimeException("Property ID cannot be null");
+        }
         Property property = propertyRepository.findById(propertyId)
             .orElseThrow(() -> new RuntimeException("Property not found"));
         
         // Create appraisal
         Appraisal appraisal = new Appraisal(UUID.randomUUID().toString());
         appraisal.setProperty(property);
-        appraisal.setAppraiser(currentEmployee);
+        
+        // Handle employee assignment based on role and request parameters
+        if (isAdmin) {
+            // Admin can specify both appraiser and lender, or defaults
+            if (request.getAppraiserId() != null) {
+                @SuppressWarnings("null")
+                Long appraiserId = request.getAppraiserId();
+                @SuppressWarnings("null")
+                Employee appraiser = employeeRepository.findById(appraiserId)
+                    .orElseThrow(() -> new RuntimeException("Appraiser not found"));
+                validateSameCompany(appraiser, currentEmployee.getCompany().getId());
+                appraisal.setAppraiser(appraiser);
+            } else {
+                // If admin doesn't specify appraiser, they become the appraiser
+                appraisal.setAppraiser(currentEmployee);
+            }
+            
+            if (request.getLenderId() != null) {
+                @SuppressWarnings("null")
+                Long lenderId = request.getLenderId();
+                @SuppressWarnings("null")
+                Employee lender = employeeRepository.findById(lenderId)
+                    .orElseThrow(() -> new RuntimeException("Lender employee not found"));
+                validateSameCompany(lender, currentEmployee.getCompany().getId());
+                appraisal.setLenderEmployee(lender);
+            }
+        } else if (isLender) {
+            // Lender creates appraisal and assigns themselves as lender
+            Employee appraiser;
+            if (request.getAppraiserId() != null) {
+                // Use specified appraiser if provided
+                @SuppressWarnings("null")
+                Long appraiserId = request.getAppraiserId();
+                @SuppressWarnings("null")
+                Employee specifiedAppraiser = employeeRepository.findById(appraiserId)
+                    .orElseThrow(() -> new RuntimeException("Appraiser not found"));
+                validateSameCompany(specifiedAppraiser, currentEmployee.getCompany().getId());
+                appraiser = specifiedAppraiser;
+            } else {
+                // Automatically assign a random available appraiser
+                appraiser = findRandomAvailableAppraiser(currentEmployee.getCompany().getId());
+                if (appraiser == null) {
+                    throw new RuntimeException("No available appraisers found in the company");
+                }
+            }
+            
+            appraisal.setAppraiser(appraiser);
+            appraisal.setLenderEmployee(currentEmployee);
+        } else {
+            // Regular employee (appraiser) assigns themselves as appraiser
+            appraisal.setAppraiser(currentEmployee);
+            
+            // Can optionally specify a lender
+            if (request.getLenderId() != null) {
+                @SuppressWarnings("null")
+                Long lenderId = request.getLenderId();
+                @SuppressWarnings("null")
+                Employee lender = employeeRepository.findById(lenderId)
+                    .orElseThrow(() -> new RuntimeException("Lender employee not found"));
+                validateSameCompany(lender, currentEmployee.getCompany().getId());
+                appraisal.setLenderEmployee(lender);
+            }
+        }
+        
         appraisal.setEffectiveDate(request.getEffectiveDate());
         appraisal.setReportDate(request.getReportDate());
         appraisal.setAppraisedValue(request.getAppraisedValue());
@@ -66,11 +138,13 @@ public class AppraisalService {
         appraisal.setStatus(request.getStatus());
         appraisal.setFinalReportUrl(request.getFinalReportUrl());
         
+        @SuppressWarnings("null")
         Appraisal savedAppraisal = appraisalRepository.save(appraisal);
         
         return convertToDto(savedAppraisal);
     }
 
+    @SuppressWarnings("null")
     public AppraisalDto updateAppraisal(String appraisalId, UpdateAppraisalRequest request) {
         // Verify access
         Long companyId = securityContextService.getCurrentCompanyId();
@@ -98,6 +172,20 @@ public class AppraisalService {
         if (request.getStatus() != null) {
             appraisal.setStatus(request.getStatus());
         }
+        if (request.getLenderId() != null) {
+            @SuppressWarnings("null")
+            Long lenderId = request.getLenderId();
+            @SuppressWarnings("null")
+            Employee lenderEmployee = employeeRepository.findById(lenderId)
+                .orElseThrow(() -> new RuntimeException("Lender employee not found"));
+                
+            // Verify lender employee belongs to the same company
+            if (!lenderEmployee.getCompany().getId().equals(companyId)) {
+                throw new SecurityException("Lender employee must belong to the same company");
+            }
+            
+            appraisal.setLenderEmployee(lenderEmployee);
+        }
         if (request.getFinalReportUrl() != null) {
             appraisal.setFinalReportUrl(request.getFinalReportUrl());
         }
@@ -120,13 +208,17 @@ public class AppraisalService {
         String currentEmployeeId = securityContextService.getCurrentEmployeeId();
         Long companyId = securityContextService.getCurrentCompanyId();
         boolean isAdmin = securityContextService.isCurrentUserAdmin();
+        boolean isLender = securityContextService.isCurrentUserLender();
         
         List<Appraisal> appraisals;
         if (isAdmin) {
             // Admin can see all company appraisals
             appraisals = appraisalRepository.findByCompanyId(companyId);
+        } else if (isLender) {
+            // Lender can see appraisals assigned to them
+            appraisals = appraisalRepository.findByLenderIdAndCompanyId(Long.parseLong(currentEmployeeId), companyId);
         } else {
-            // Regular user can only see their own appraisals
+            // Regular user can only see their own appraisals as appraiser
             appraisals = appraisalRepository.findByAppraiserIdAndCompanyId(Long.parseLong(currentEmployeeId), companyId);
         }
         
@@ -135,6 +227,7 @@ public class AppraisalService {
                 .collect(Collectors.toList());
     }
 
+    @SuppressWarnings("null")
     public void deleteAppraisal(String appraisalId) {
         Long companyId = securityContextService.getCurrentCompanyId();
         Appraisal appraisal = appraisalRepository.findByAppraisalIdAndCompanyId(appraisalId, companyId)
@@ -150,7 +243,9 @@ public class AppraisalService {
             fileUploadService.deleteFile(document.getFileUrl());
         }
         
-        appraisalRepository.delete(appraisal);
+        @SuppressWarnings("null")
+        Appraisal nonNullAppraisal = appraisal;
+        appraisalRepository.delete(nonNullAppraisal);
     }
 
     public AppraisalDocumentDto uploadDocument(String appraisalId, 
@@ -294,8 +389,60 @@ public class AppraisalService {
         String currentEmployeeId = securityContextService.getCurrentEmployeeId();
         boolean isAdmin = securityContextService.isCurrentUserAdmin();
         
-        return isAdmin || (appraisal.getAppraiser() != null && 
-                          currentEmployeeId.equals(String.valueOf(appraisal.getAppraiser().getId())));
+        // Admin can modify any appraisal
+        if (isAdmin) {
+            return true;
+        }
+        
+        // Appraiser can modify their own appraisals
+        if (appraisal.getAppraiser() != null && 
+            currentEmployeeId.equals(String.valueOf(appraisal.getAppraiser().getId()))) {
+            return true;
+        }
+        
+        // Lender can modify appraisals assigned to them
+        if (appraisal.getLenderEmployee() != null && 
+            currentEmployeeId.equals(String.valueOf(appraisal.getLenderEmployee().getId()))) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    private void validateSameCompany(Employee employee, Long companyId) {
+        if (!employee.getCompany().getId().equals(companyId)) {
+            throw new SecurityException("Employee must belong to the same company");
+        }
+    }
+
+    private Employee findRandomAvailableAppraiser(Long companyId) {
+        // Find company by ID
+        if (companyId == null) {
+            throw new RuntimeException("Company ID cannot be null");
+        }
+        Company company = companyRepository.findById(companyId)
+            .orElseThrow(() -> new RuntimeException("Company not found"));
+            
+        // Find available appraisers in the company (excluding lenders and archived employees)
+        List<Employee> availableAppraisers = employeeRepository.findByCompanyAndArchivedFalse(company)
+            .stream()
+            .filter(emp -> !isEmployeeLender(emp)) // Exclude lenders from being auto-assigned as appraisers
+            .collect(Collectors.toList());
+            
+        if (availableAppraisers.isEmpty()) {
+            return null;
+        }
+        
+        // Return random appraiser
+        return availableAppraisers.get(new java.util.Random().nextInt(availableAppraisers.size()));
+    }
+
+    private boolean isEmployeeLender(Employee employee) {
+        if (employee.getUser() == null || employee.getUser().getRoles() == null) {
+            return false;
+        }
+        return employee.getUser().getRoles().stream()
+            .anyMatch(role -> "LENDER".equalsIgnoreCase(role.getName()));
     }
 
     private AppraisalDto convertToDto(Appraisal appraisal) {
@@ -311,6 +458,12 @@ public class AppraisalService {
         if (appraisal.getAppraiser() != null) {
             dto.setAppraiserId(String.valueOf(appraisal.getAppraiser().getId()));
             dto.setAppraiserName(appraisal.getAppraiser().getFirstName() + " " + appraisal.getAppraiser().getLastName());
+        }
+        
+        // Set lender ID and name
+        if (appraisal.getLenderEmployee() != null) {
+            dto.setLenderId(String.valueOf(appraisal.getLenderEmployee().getId()));
+            dto.setLenderName(appraisal.getLenderEmployee().getFirstName() + " " + appraisal.getLenderEmployee().getLastName());
         }
         
         dto.setEffectiveDate(appraisal.getEffectiveDate());
