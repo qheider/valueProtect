@@ -59,6 +59,12 @@ const AppraisalCard = ({ appraisal, actions }) => {
             </Typography>
           )}
 
+          {appraisal.lenderName && (
+            <Typography variant="body2" color="text.secondary">
+              Lender: {appraisal.lenderName}
+            </Typography>
+          )}
+
           <Typography variant="body2" color="text.secondary">
             Purpose: {appraisal.purpose || 'N/A'}
           </Typography>

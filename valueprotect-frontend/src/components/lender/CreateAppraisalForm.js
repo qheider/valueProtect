@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, AttachFile as AttachFileIcon } from '@mui/icons-material';
 import { appraisalService } from '../../services/appraisalService';
+import { employeeService } from '../../services/employeeService';
 import { PROPERTY_TYPES, APPRAISAL_STATUS, DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '../../utils/constants';
 import { formatDateForAPI } from '../../utils/helpers';
 
@@ -26,7 +27,10 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
   const [error, setError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [formData, setFormData] = useState({
+    // Assignment fields
+    appraiserId: '',
     // Property fields
     apn: '',
     addressLine1: '',
@@ -52,6 +56,19 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
     purpose: '',
     status: APPRAISAL_STATUS.DRAFT
   });
+
+  // Load employees when component mounts
+  React.useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await employeeService.getCompanyEmployees();
+        setEmployees(response.data || []);
+      } catch (err) {
+        console.error('Failed to load employees:', err);
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -157,7 +174,8 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
         effectiveDate: formData.effectiveDate,
         reportDate: formData.reportDate,
         purpose: formData.purpose,
-        status: formData.status
+        status: formData.status,
+        appraiserId: formData.appraiserId ? parseInt(formData.appraiserId) : null
       };
 
       // Create appraisal
@@ -188,7 +206,44 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
 
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            {/* Assignment Information */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Assignment
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <TextField
+                select
+                fullWidth
+                label="Appraiser (Optional - Random assignment if not selected)"
+                name="appraiserId"
+                value={formData.appraiserId}
+                onChange={handleChange}
+                disabled={loading}
+                helperText="Leave empty for automatic assignment to available appraiser"
+              >
+                <MenuItem value="">
+                  <em>Auto-assign to available appraiser</em>
+                </MenuItem>
+                {employees
+                  .filter(emp => emp.roles && !emp.roles.some(role => role.name === 'LENDER'))
+                  .map((employee) => (
+                  <MenuItem key={employee.id} value={employee.id.toString()}>
+                    {employee.firstName} {employee.lastName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+
             {/* Property Information */}
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Property Information
+              </Typography>
+            </Grid>
+            
             <Grid item xs={12}>
               <TextField
                 required

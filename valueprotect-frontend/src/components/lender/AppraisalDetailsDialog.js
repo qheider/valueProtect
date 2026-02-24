@@ -166,12 +166,24 @@ const AppraisalDetailsDialog = ({ open, onClose, appraisal }) => {
             )}
             
             {appraisal.appraiserName && (
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <Box display="flex" alignItems="center" gap={1}>
                   <PersonIcon fontSize="small" color="action" />
                   <Box>
                     <Typography variant="body2" color="text.secondary">Appraiser</Typography>
                     <Typography variant="body1">{appraisal.appraiserName}</Typography>
+                  </Box>
+                </Box>
+              </Grid>
+            )}
+            
+            {appraisal.lenderName && (
+              <Grid item xs={12} sm={6}>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <PersonIcon fontSize="small" color="action" />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Lender</Typography>
+                    <Typography variant="body1">{appraisal.lenderName}</Typography>
                   </Box>
                 </Box>
               </Grid>
