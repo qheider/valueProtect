@@ -48,7 +48,7 @@ create Appriser using
   "userName": "abc.appraiser",
   "password": "SecurePassword123",
   "email": "john.doe.{{$randomInt}}@company.com",
-  "roleName": "appraiser"
+  "roleName": "APPRAISER"
 }
 
 

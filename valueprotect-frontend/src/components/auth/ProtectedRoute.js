@@ -20,6 +20,12 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   if (requiredRole) {
     const userRole = user?.roles?.[0];
+    console.log('ProtectedRoute Debug:', {
+      userRole,
+      requiredRole,
+      match: userRole === requiredRole,
+      user: user
+    });
     if (userRole !== requiredRole) {
       return <Navigate to="/unauthorized" replace />;
     }
