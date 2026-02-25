@@ -14,6 +14,10 @@ public class Company extends BaseEntity {
     @Column(name = "company_code", unique = true, length = 50)
     private String companyCode;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "company_type", nullable = false, length = 20)
+    private CompanyType companyType;
+
     @Column(name = "email", length = 255)
     private String email;
 
@@ -74,6 +78,14 @@ public class Company extends BaseEntity {
 
     public void setCompanyCode(String companyCode) {
         this.companyCode = companyCode;
+    }
+
+    public CompanyType getCompanyType() {
+        return companyType;
+    }
+
+    public void setCompanyType(CompanyType companyType) {
+        this.companyType = companyType;
     }
 
     public String getEmail() {
