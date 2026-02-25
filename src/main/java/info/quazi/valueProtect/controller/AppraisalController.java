@@ -2,6 +2,7 @@ package info.quazi.valueProtect.controller;
 
 import info.quazi.valueProtect.dto.*;
 import info.quazi.valueProtect.entity.AppraisalDocument.DocumentType;
+import info.quazi.valueProtect.exception.UnauthorizedAppraiserAssignmentException;
 import info.quazi.valueProtect.service.AppraisalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -103,6 +104,23 @@ public class AppraisalController {
         
         AppraisalDto updatedAppraisal = appraisalService.updateAppraisal(appraisalId, request);
         return ResponseEntity.ok(updatedAppraisal);
+    }
+
+    @PostMapping("/{appraisalId}/assign-appraiser")
+    @Operation(
+        summary = "Assign appraiser to appraisal",
+        description = "Assign an appraiser to an appraisal request. The appraiser must have APPRAISER role, " +
+                     "belong to an APPRAISAL company, and that company must be in the lender's preferred list."
+    )
+    @ApiResponse(responseCode = "200", description = "Appraiser assigned successfully")
+    @ApiResponse(responseCode = "403", description = "Appraiser assignment not authorized")
+    @ApiResponse(responseCode = "404", description = "Appraisal or user not found")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LENDER')")
+    public ResponseEntity<AppraisalDto> assignAppraiser(
+            @PathVariable @Parameter(description = "Appraisal ID") String appraisalId,
+            @RequestParam("userId") @Parameter(description = "Appraiser user ID") Long userId) {
+        AppraisalDto updated = appraisalService.assignAppraiser(appraisalId, userId);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{appraisalId}")
@@ -228,6 +246,12 @@ public class AppraisalController {
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<ErrorResponse> handleSecurityException(SecurityException e) {
         ErrorResponse error = new ErrorResponse("ACCESS_DENIED", e.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(UnauthorizedAppraiserAssignmentException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedAppraiserAssignment(UnauthorizedAppraiserAssignmentException e) {
+        ErrorResponse error = new ErrorResponse("APPRAISER_ASSIGNMENT_NOT_ALLOWED", e.getMessage());
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 

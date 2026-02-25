@@ -1308,6 +1308,46 @@
 					"response": []
 				},
 				{
+					"name": "Assign Appraiser",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Appraiser assignment response', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}/assign-appraiser?userId={{appraiser_user_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}",
+								"assign-appraiser"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{appraiser_user_id}}"
+								}
+							]
+						},
+						"description": "Assign an appraiser to an appraisal. Requires the user to have APPRAISER role, belong to an APPRAISAL company, and be in the lender's preferred list."
+					},
+					"response": []
+				},
+				{
 					"name": "Delete Appraisal",
 					"request": {
 						"method": "DELETE",

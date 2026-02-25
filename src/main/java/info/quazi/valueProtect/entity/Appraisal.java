@@ -53,6 +53,10 @@ public class Appraisal {
     @JoinColumn(name = "lender_id", referencedColumnName = "id")
     private Employee lenderEmployee;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lender_company_id", referencedColumnName = "id")
+    private Company lenderCompany;
+
     @OneToMany(mappedBy = "appraisal", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<AppraisalDocument> documents = new ArrayList<>();
 
@@ -161,6 +165,14 @@ public class Appraisal {
 
     public void setLenderEmployee(Employee lenderEmployee) {
         this.lenderEmployee = lenderEmployee;
+    }
+
+    public Company getLenderCompany() {
+        return lenderCompany;
+    }
+
+    public void setLenderCompany(Company lenderCompany) {
+        this.lenderCompany = lenderCompany;
     }
 
     public List<AppraisalDocument> getDocuments() {

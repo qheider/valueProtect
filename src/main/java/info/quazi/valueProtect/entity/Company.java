@@ -2,7 +2,9 @@ package info.quazi.valueProtect.entity;
 
 import jakarta.persistence.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "company")
@@ -63,6 +65,17 @@ public class Company extends BaseEntity {
 
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Employee> employees = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "lender_preferred_appraisal",
+        joinColumns = @JoinColumn(name = "lender_id"),
+        inverseJoinColumns = @JoinColumn(name = "appraisal_company_id")
+    )
+    private Set<Company> preferredAppraisalCompanies = new HashSet<>();
+
+    @ManyToMany(mappedBy = "preferredAppraisalCompanies", fetch = FetchType.LAZY)
+    private Set<Company> preferredByLenders = new HashSet<>();
 
     public String getName() {
         return name;
@@ -206,5 +219,21 @@ public class Company extends BaseEntity {
 
     public void setEmployees(List<Employee> employees) {
         this.employees = employees;
+    }
+
+    public Set<Company> getPreferredAppraisalCompanies() {
+        return preferredAppraisalCompanies;
+    }
+
+    public void setPreferredAppraisalCompanies(Set<Company> preferredAppraisalCompanies) {
+        this.preferredAppraisalCompanies = preferredAppraisalCompanies;
+    }
+
+    public Set<Company> getPreferredByLenders() {
+        return preferredByLenders;
+    }
+
+    public void setPreferredByLenders(Set<Company> preferredByLenders) {
+        this.preferredByLenders = preferredByLenders;
     }
 }

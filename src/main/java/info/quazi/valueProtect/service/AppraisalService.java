@@ -2,6 +2,7 @@ package info.quazi.valueProtect.service;
 
 import info.quazi.valueProtect.dto.*;
 import info.quazi.valueProtect.entity.*;
+import info.quazi.valueProtect.exception.UnauthorizedAppraiserAssignmentException;
 import info.quazi.valueProtect.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ public class AppraisalService {
     private final AppraisalDocumentRepository appraisalDocumentRepository;
     private final EmployeeRepository employeeRepository;
     private final CompanyRepository companyRepository;
+    private final UserRepository userRepository;
     private final SecurityContextService securityContextService;
     private final FileUploadService fileUploadService;
 
@@ -35,6 +37,7 @@ public class AppraisalService {
                            AppraisalDocumentRepository appraisalDocumentRepository,
                            EmployeeRepository employeeRepository,
                            CompanyRepository companyRepository,
+                           UserRepository userRepository,
                            SecurityContextService securityContextService,
                            FileUploadService fileUploadService) {
         this.appraisalRepository = appraisalRepository;
@@ -43,6 +46,7 @@ public class AppraisalService {
         this.appraisalDocumentRepository = appraisalDocumentRepository;
         this.employeeRepository = employeeRepository;
         this.companyRepository = companyRepository;
+        this.userRepository = userRepository;
         this.securityContextService = securityContextService;
         this.fileUploadService = fileUploadService;
     }
@@ -92,6 +96,7 @@ public class AppraisalService {
                     .orElseThrow(() -> new RuntimeException("Lender employee not found"));
                 validateSameCompany(lender, currentEmployee.getCompany().getId());
                 appraisal.setLenderEmployee(lender);
+                appraisal.setLenderCompany(lender.getCompany());
             }
         } else if (isLender) {
             // Lender creates appraisal and assigns themselves as lender
@@ -115,6 +120,7 @@ public class AppraisalService {
             
             appraisal.setAppraiser(appraiser);
             appraisal.setLenderEmployee(currentEmployee);
+            appraisal.setLenderCompany(currentEmployee.getCompany());
         } else {
             // Regular employee (appraiser) assigns themselves as appraiser
             appraisal.setAppraiser(currentEmployee);
@@ -128,6 +134,7 @@ public class AppraisalService {
                     .orElseThrow(() -> new RuntimeException("Lender employee not found"));
                 validateSameCompany(lender, currentEmployee.getCompany().getId());
                 appraisal.setLenderEmployee(lender);
+                appraisal.setLenderCompany(lender.getCompany());
             }
         }
         
@@ -185,6 +192,7 @@ public class AppraisalService {
             }
             
             appraisal.setLenderEmployee(lenderEmployee);
+            appraisal.setLenderCompany(lenderEmployee.getCompany());
         }
         if (request.getFinalReportUrl() != null) {
             appraisal.setFinalReportUrl(request.getFinalReportUrl());
@@ -328,6 +336,44 @@ public class AppraisalService {
         appraisalDocumentRepository.delete(document);
     }
 
+    @Transactional
+    public AppraisalDto assignAppraiser(String requestId, Long userId) {
+        Appraisal appraisal = appraisalRepository.findByAppraisalId(requestId)
+                .orElseThrow(() -> new RuntimeException("Appraisal not found with id: " + requestId));
+
+        if (appraisal.getLenderCompany() == null) {
+            throw new UnauthorizedAppraiserAssignmentException("Lender company is required for assignment");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        if (!hasRole(user, RoleName.APPRAISER)) {
+            throw new UnauthorizedAppraiserAssignmentException("User must have APPRAISER role");
+        }
+
+        Employee appraiserEmployee = employeeRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Employee not found for user id: " + userId));
+
+        Company appraiserCompany = appraiserEmployee.getCompany();
+        if (appraiserCompany == null || appraiserCompany.getCompanyType() != CompanyType.APPRAISAL) {
+            throw new UnauthorizedAppraiserAssignmentException("Appraiser must belong to an APPRAISAL company");
+        }
+
+        Company lenderCompany = appraisal.getLenderCompany();
+        boolean isPreferred = lenderCompany.getPreferredAppraisalCompanies().stream()
+            .anyMatch(company -> company.getId() != null && company.getId().equals(appraiserCompany.getId()));
+
+        if (!isPreferred) {
+            throw new UnauthorizedAppraiserAssignmentException(
+                    "Appraiser company is not in lender's preferred appraisal list");
+        }
+
+        appraisal.setAppraiser(appraiserEmployee);
+        Appraisal saved = appraisalRepository.save(appraisal);
+        return convertToDto(saved);
+    }
+
     private String handleProperty(CreateAppraisalRequest.PropertyInfo propertyInfo) {
         if (propertyInfo.getExistingPropertyId() != null) {
             // Use existing property
@@ -413,6 +459,13 @@ public class AppraisalService {
         if (!employee.getCompany().getId().equals(companyId)) {
             throw new SecurityException("Employee must belong to the same company");
         }
+    }
+
+    private boolean hasRole(User user, RoleName roleName) {
+        return user.getRoles().stream()
+                .map(Role::getName)
+                .map(name -> name == null ? "" : name.replace("ROLE_", ""))
+                .anyMatch(normalized -> roleName.name().equalsIgnoreCase(normalized));
     }
 
     private Employee findRandomAvailableAppraiser(Long companyId) {
