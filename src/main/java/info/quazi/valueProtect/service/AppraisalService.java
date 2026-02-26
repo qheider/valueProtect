@@ -192,10 +192,11 @@ public class AppraisalService {
             @SuppressWarnings("null")
             Employee lenderEmployee = employeeRepository.findById(lenderId)
                 .orElseThrow(() -> new RuntimeException("Lender employee not found"));
-                
-            // Verify lender employee belongs to the same company
-            if (!lenderEmployee.getCompany().getId().equals(companyId)) {
-                throw new SecurityException("Lender employee must belong to the same company");
+
+            // Verify lender employee belongs to appraisal's lender company (if already assigned)
+            if (appraisal.getLenderCompany() != null &&
+                !lenderEmployee.getCompany().getId().equals(appraisal.getLenderCompany().getId())) {
+                throw new SecurityException("Lender employee must belong to the appraisal lender company");
             }
             
             appraisal.setLenderEmployee(lenderEmployee);

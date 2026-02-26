@@ -52,7 +52,6 @@ const AppraiserDashboard = () => {
     try {
       // Update appraisal status to REVIEW (in-progress)
       await appraisalService.updateAppraisal(appraisal.appraisalId, {
-        ...appraisal,
         status: APPRAISAL_STATUS.REVIEW
       });
       setRefreshKey(prev => prev + 1);
