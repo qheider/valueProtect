@@ -41,3 +41,6 @@ valueprotect-frontend/yarn-debug.log*
 valueprotect-frontend/yarn-error.log*
 valueprotect-frontend/package-lock.json.lock
 valueprotect-frontend/.env
+
+# Uploaded Files
+uploads/
