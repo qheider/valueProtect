@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class AppraisalService {
 
+public class AppraisalService {
     private static final Logger log = LoggerFactory.getLogger(AppraisalService.class);
 
     private final AppraisalRepository appraisalRepository;
@@ -71,6 +71,9 @@ public class AppraisalService {
         // Create appraisal
         Appraisal appraisal = new Appraisal(UUID.randomUUID().toString());
         appraisal.setProperty(property);
+
+        Employee appraiserEmployee;
+        Employee lenderEmployee = null;
         
         // Handle employee assignment based on role and request parameters
         if (isAdmin) {
@@ -82,10 +85,10 @@ public class AppraisalService {
                 Employee appraiser = employeeRepository.findById(appraiserId)
                     .orElseThrow(() -> new RuntimeException("Appraiser not found"));
                 validateSameCompany(appraiser, currentEmployee.getCompany().getId());
-                appraisal.setAppraiser(appraiser);
+                appraiserEmployee = appraiser;
             } else {
                 // If admin doesn't specify appraiser, they become the appraiser
-                appraisal.setAppraiser(currentEmployee);
+                appraiserEmployee = currentEmployee;
             }
             
             if (request.getLenderId() != null) {
@@ -95,12 +98,10 @@ public class AppraisalService {
                 Employee lender = employeeRepository.findById(lenderId)
                     .orElseThrow(() -> new RuntimeException("Lender employee not found"));
                 validateSameCompany(lender, currentEmployee.getCompany().getId());
-                appraisal.setLenderEmployee(lender);
-                appraisal.setLenderCompany(lender.getCompany());
+                lenderEmployee = lender;
             }
         } else if (isLender) {
             // Lender creates appraisal and assigns themselves as lender
-            Employee appraiser;
             if (request.getAppraiserId() != null) {
                 // Use specified appraiser if provided
                 @SuppressWarnings("null")
@@ -109,21 +110,19 @@ public class AppraisalService {
                 Employee specifiedAppraiser = employeeRepository.findById(appraiserId)
                     .orElseThrow(() -> new RuntimeException("Appraiser not found"));
                 validateSameCompany(specifiedAppraiser, currentEmployee.getCompany().getId());
-                appraiser = specifiedAppraiser;
+                appraiserEmployee = specifiedAppraiser;
             } else {
                 // Automatically assign a random available appraiser
-                appraiser = findRandomAvailableAppraiser(currentEmployee.getCompany().getId());
-                if (appraiser == null) {
-                    throw new RuntimeException("No available appraisers found in the company");
+                appraiserEmployee = findRandomAvailableAppraiser(currentEmployee.getCompany().getId());
+                if (appraiserEmployee == null) {
+                    throw new RuntimeException("No available preferred appraisers found for the lender company");
                 }
             }
             
-            appraisal.setAppraiser(appraiser);
-            appraisal.setLenderEmployee(currentEmployee);
-            appraisal.setLenderCompany(currentEmployee.getCompany());
+            lenderEmployee = currentEmployee;
         } else {
             // Regular employee (appraiser) assigns themselves as appraiser
-            appraisal.setAppraiser(currentEmployee);
+            appraiserEmployee = currentEmployee;
             
             // Can optionally specify a lender
             if (request.getLenderId() != null) {
@@ -133,10 +132,18 @@ public class AppraisalService {
                 Employee lender = employeeRepository.findById(lenderId)
                     .orElseThrow(() -> new RuntimeException("Lender employee not found"));
                 validateSameCompany(lender, currentEmployee.getCompany().getId());
-                appraisal.setLenderEmployee(lender);
-                appraisal.setLenderCompany(lender.getCompany());
+                lenderEmployee = lender;
             }
         }
+
+        if (lenderEmployee == null || lenderEmployee.getCompany() == null) {
+            throw new UnauthorizedAppraiserAssignmentException("Lender company is required for assignment");
+        }
+
+        validateAppraiserEligibilityForLender(appraiserEmployee, lenderEmployee.getCompany());
+        appraisal.setAppraiser(appraiserEmployee);
+        appraisal.setLenderEmployee(lenderEmployee);
+        appraisal.setLenderCompany(lenderEmployee.getCompany());
         
         appraisal.setEffectiveDate(request.getEffectiveDate());
         appraisal.setReportDate(request.getReportDate());
@@ -345,29 +352,9 @@ public class AppraisalService {
             throw new UnauthorizedAppraiserAssignmentException("Lender company is required for assignment");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-
-        if (!hasRole(user, RoleName.APPRAISER)) {
-            throw new UnauthorizedAppraiserAssignmentException("User must have APPRAISER role");
-        }
-
         Employee appraiserEmployee = employeeRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Employee not found for user id: " + userId));
-
-        Company appraiserCompany = appraiserEmployee.getCompany();
-        if (appraiserCompany == null || appraiserCompany.getCompanyType() != CompanyType.APPRAISAL) {
-            throw new UnauthorizedAppraiserAssignmentException("Appraiser must belong to an APPRAISAL company");
-        }
-
-        Company lenderCompany = appraisal.getLenderCompany();
-        boolean isPreferred = lenderCompany.getPreferredAppraisalCompanies().stream()
-            .anyMatch(company -> company.getId() != null && company.getId().equals(appraiserCompany.getId()));
-
-        if (!isPreferred) {
-            throw new UnauthorizedAppraiserAssignmentException(
-                    "Appraiser company is not in lender's preferred appraisal list");
-        }
+        validateAppraiserEligibilityForLender(appraiserEmployee, appraisal.getLenderCompany());
 
         appraisal.setAppraiser(appraiserEmployee);
         Appraisal saved = appraisalRepository.save(appraisal);
@@ -461,7 +448,38 @@ public class AppraisalService {
         }
     }
 
+    private void validateAppraiserEligibilityForLender(Employee appraiserEmployee, Company lenderCompany) {
+        if (appraiserEmployee == null) {
+            throw new UnauthorizedAppraiserAssignmentException("Appraiser employee is required for assignment");
+        }
+
+        User appraiserUser = appraiserEmployee.getUser();
+        if (!hasRole(appraiserUser, RoleName.APPRAISER)) {
+            throw new UnauthorizedAppraiserAssignmentException("User must have APPRAISER role");
+        }
+
+        Company appraiserCompany = appraiserEmployee.getCompany();
+        if (appraiserCompany == null || appraiserCompany.getCompanyType() != CompanyType.APPRAISAL) {
+            throw new UnauthorizedAppraiserAssignmentException("Appraiser must belong to an APPRAISAL company");
+        }
+
+        if (lenderCompany == null) {
+            throw new UnauthorizedAppraiserAssignmentException("Lender company is required for assignment");
+        }
+
+        boolean isPreferred = lenderCompany.getPreferredAppraisalCompanies().stream()
+            .anyMatch(company -> company.getId() != null && company.getId().equals(appraiserCompany.getId()));
+
+        if (!isPreferred) {
+            throw new UnauthorizedAppraiserAssignmentException(
+                    "Appraiser company is not in lender's preferred appraisal list");
+        }
+    }
+
     private boolean hasRole(User user, RoleName roleName) {
+        if (user == null || user.getRoles() == null) {
+            return false;
+        }
         return user.getRoles().stream()
                 .map(Role::getName)
                 .map(name -> name == null ? "" : name.replace("ROLE_", ""))
@@ -469,17 +487,19 @@ public class AppraisalService {
     }
 
     private Employee findRandomAvailableAppraiser(Long companyId) {
-        // Find company by ID
+        // Find lender company by ID
         if (companyId == null) {
             throw new RuntimeException("Company ID cannot be null");
         }
-        Company company = companyRepository.findById(companyId)
+        Company lenderCompany = companyRepository.findById(companyId)
             .orElseThrow(() -> new RuntimeException("Company not found"));
-            
-        // Find available appraisers in the company (excluding lenders and archived employees)
-        List<Employee> availableAppraisers = employeeRepository.findByCompanyAndArchivedFalse(company)
-            .stream()
-            .filter(emp -> !isEmployeeLender(emp)) // Exclude lenders from being auto-assigned as appraisers
+
+        // Find available appraisers from lender's preferred appraisal companies only
+        List<Employee> availableAppraisers = lenderCompany.getPreferredAppraisalCompanies().stream()
+            .filter(company -> company.getCompanyType() == CompanyType.APPRAISAL)
+            .flatMap(company -> employeeRepository.findByCompanyAndArchivedFalse(company).stream())
+            .filter(emp -> !isEmployeeLender(emp))
+            .filter(emp -> hasRole(emp.getUser(), RoleName.APPRAISER))
             .collect(Collectors.toList());
             
         if (availableAppraisers.isEmpty()) {
