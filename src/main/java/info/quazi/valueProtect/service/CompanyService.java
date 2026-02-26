@@ -3,8 +3,10 @@ package info.quazi.valueProtect.service;
 import info.quazi.valueProtect.dto.RegisterCompanyRequest;
 import info.quazi.valueProtect.dto.RegisterCompanyResponse;
 import info.quazi.valueProtect.entity.Company;
+import info.quazi.valueProtect.entity.CompanyType;
 import info.quazi.valueProtect.entity.Employee;
 import info.quazi.valueProtect.entity.Role;
+import info.quazi.valueProtect.entity.RoleName;
 import info.quazi.valueProtect.entity.User;
 import info.quazi.valueProtect.repository.CompanyRepository;
 import info.quazi.valueProtect.repository.EmployeeRepository;
@@ -41,6 +43,10 @@ public class CompanyService {
     @Transactional
     public Company create(Company company) {
         company.setArchived(false);
+
+        if (company.getCompanyType() == null) {
+            throw new RuntimeException("Company type is required");
+        }
         
         if (company.getStatus() == null || company.getStatus().isEmpty()) {
             company.setStatus("ACTIVE");
@@ -98,6 +104,9 @@ public class CompanyService {
         }
         if (companyDetails.getStatus() != null) {
             company.setStatus(companyDetails.getStatus());
+        }
+        if (companyDetails.getCompanyType() != null) {
+            company.setCompanyType(companyDetails.getCompanyType());
         }
 
         @SuppressWarnings("null")
@@ -185,6 +194,10 @@ public class CompanyService {
                 throw new RuntimeException("Company with code '" + request.getCompanyCode() + "' already exists");
             }
         }
+
+        if (request.getCompanyType() == null) {
+            throw new RuntimeException("Company type is required");
+        }
         
         // Check if username already exists
         Optional<User> existingUser = userRepository.findByUserName(request.getAdminUsername());
@@ -203,6 +216,7 @@ public class CompanyService {
         Company company = new Company();
         company.setName(request.getCompanyName());
         company.setCompanyCode(request.getCompanyCode());
+        company.setCompanyType(request.getCompanyType());
         company.setEmail(request.getCompanyEmail());
         company.setPhone(request.getCompanyPhone());
         company.setWebsite(request.getCompanyWebsite());
@@ -230,10 +244,10 @@ public class CompanyService {
         user.setArchived(false);
         
         // Get or create ADMIN role
-        Role adminRole = roleRepository.findByName("ADMIN")
+        Role adminRole = roleRepository.findByName(RoleName.ADMIN.name())
                 .orElseGet(() -> {
                     Role newRole = new Role();
-                    newRole.setName("ADMIN");
+                    newRole.setName(RoleName.ADMIN.name());
                     newRole.setArchived(false);
                     return roleRepository.save(newRole);
                 });

@@ -1,7 +1,9 @@
 package info.quazi.valueProtect.dto;
 
+import info.quazi.valueProtect.entity.CompanyType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class RegisterCompanyRequest {
@@ -13,6 +15,9 @@ public class RegisterCompanyRequest {
 
     @Size(max = 50, message = "Company code must not exceed 50 characters")
     private String companyCode;
+
+    @NotNull(message = "Company type is required")
+    private CompanyType companyType;
 
     @Email(message = "Company email should be valid")
     @Size(max = 255, message = "Company email must not exceed 255 characters")
@@ -91,6 +96,14 @@ public class RegisterCompanyRequest {
 
     public void setCompanyCode(String companyCode) {
         this.companyCode = companyCode;
+    }
+
+    public CompanyType getCompanyType() {
+        return companyType;
+    }
+
+    public void setCompanyType(CompanyType companyType) {
+        this.companyType = companyType;
     }
 
     public String getCompanyEmail() {

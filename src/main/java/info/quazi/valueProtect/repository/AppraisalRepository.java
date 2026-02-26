@@ -43,4 +43,20 @@ public interface AppraisalRepository extends JpaRepository<Appraisal, String> {
     
     @Query("SELECT COUNT(a) FROM Appraisal a WHERE a.appraiser.id = :appraiserId")
     long countByAppraiserId(@Param("appraiserId") Long appraiserId);
+
+    // Find appraisals by lender employee
+    @Query("SELECT a FROM Appraisal a WHERE a.lenderEmployee.id = :lenderId")
+    List<Appraisal> findByLenderId(@Param("lenderId") Long lenderId);
+
+    // Find appraisals by lender company - for lender dashboard scope
+    @Query("SELECT a FROM Appraisal a WHERE a.lenderCompany.id = :companyId")
+    List<Appraisal> findByLenderCompanyId(@Param("companyId") Long companyId);
+    
+    // Find appraisals by lender within a company - security check
+    @Query("SELECT a FROM Appraisal a WHERE a.lenderEmployee.id = :lenderId AND a.appraiser.company.id = :companyId")
+    List<Appraisal> findByLenderIdAndCompanyId(@Param("lenderId") Long lenderId, 
+                                              @Param("companyId") Long companyId);
+                                              
+    @Query("SELECT COUNT(a) FROM Appraisal a WHERE a.lenderEmployee.id = :lenderId")
+    long countByLenderId(@Param("lenderId") Long lenderId);
 }

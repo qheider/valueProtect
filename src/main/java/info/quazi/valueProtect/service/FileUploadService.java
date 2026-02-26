@@ -1,5 +1,7 @@
 package info.quazi.valueProtect.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +18,8 @@ import java.util.UUID;
 @Service
 public class FileUploadService {
 
+    private static final Logger log = LoggerFactory.getLogger(FileUploadService.class);
+
     @Value("${app.file.upload.directory:uploads/appraisal-documents}")
     private String uploadDirectory;
 
@@ -23,23 +27,32 @@ public class FileUploadService {
     private String baseUrl;
 
     public String uploadFile(MultipartFile file, String appraisalId, String documentType) throws IOException {
+        log.info("Starting file upload for appraisal: {}, file: {}, type: {}", 
+                appraisalId, file.getOriginalFilename(), documentType);
+        
         // Validate file
         validateFile(file);
+        log.debug("File validation passed");
         
         // Create directory structure
         Path uploadPath = createDirectoryStructure(appraisalId);
+        log.info("Upload directory created/verified: {}", uploadPath.toAbsolutePath());
         
         // Generate unique filename
         String originalFilename = file.getOriginalFilename();
         String fileExtension = getFileExtension(originalFilename);
         String uniqueFilename = generateUniqueFilename(documentType, fileExtension);
+        log.debug("Generated unique filename: {}", uniqueFilename);
         
         // Save file
         Path filePath = uploadPath.resolve(uniqueFilename);
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        log.info("File saved successfully to: {}", filePath.toAbsolutePath());
         
         // Return file URL
-        return generateFileUrl(appraisalId, uniqueFilename);
+        String fileUrl = generateFileUrl(appraisalId, uniqueFilename);
+        log.debug("Generated file URL: {}", fileUrl);
+        return fileUrl;
     }
 
     public void deleteFile(String fileUrl) {

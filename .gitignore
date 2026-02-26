@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# React / Node
+valueprotect-frontend/node_modules/
+valueprotect-frontend/build/
+valueprotect-frontend/dist/
+valueprotect-frontend/npm-debug.log*
+valueprotect-frontend/yarn-debug.log*
+valueprotect-frontend/yarn-error.log*
+valueprotect-frontend/package-lock.json.lock
+valueprotect-frontend/.env

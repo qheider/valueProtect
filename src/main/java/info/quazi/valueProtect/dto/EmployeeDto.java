@@ -19,6 +19,7 @@ public class EmployeeDto {
     private Long companyId;
     private String companyName;
     private String userName;
+    private String email;
 
     public static EmployeeDto fromEntity(Employee employee) {
         if (employee == null) {
@@ -40,6 +41,7 @@ public class EmployeeDto {
         dto.setCompanyId(employee.getCompany() != null ? employee.getCompany().getId() : null);
         dto.setCompanyName(employee.getCompany() != null ? employee.getCompany().getName() : null);
         dto.setUserName(employee.getUser() != null ? employee.getUser().getUserName() : null);
+        dto.setEmail(employee.getUser() != null ? employee.getUser().getEmail() : null);
         return dto;
     }
 
@@ -161,5 +163,13 @@ public class EmployeeDto {
 
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

@@ -15,13 +15,16 @@ public class CreateAppraisalRequest {
     @Valid
     private PropertyInfo property;
 
+    private Long appraiserId;
+
+    private Long lenderId;
+
     @NotNull(message = "Effective date is required")
     private LocalDate effectiveDate;
 
     @NotNull(message = "Report date is required")
     private LocalDate reportDate;
 
-    @NotNull(message = "Appraised value is required")
     @Positive(message = "Appraised value must be positive")
     private BigDecimal appraisedValue;
 
@@ -42,6 +45,22 @@ public class CreateAppraisalRequest {
 
     public void setProperty(PropertyInfo property) {
         this.property = property;
+    }
+
+    public Long getAppraiserId() {
+        return appraiserId;
+    }
+
+    public void setAppraiserId(Long appraiserId) {
+        this.appraiserId = appraiserId;
+    }
+
+    public Long getLenderId() {
+        return lenderId;
+    }
+
+    public void setLenderId(Long lenderId) {
+        this.lenderId = lenderId;
     }
 
     public LocalDate getEffectiveDate() {

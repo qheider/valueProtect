@@ -238,6 +238,49 @@
 					]
 				},
 				{
+					"name": "Create Employee (Admin Only) - APPRAISER Not Allowed for LENDER/BROKER",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Expect rejection when company type is LENDER or BROKER",
+									"pm.test('Appraiser role rejected for non-appraisal companies', function () {",
+									"    pm.expect(pm.response.code).to.not.eql(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Appraiser\",\n  \"lastName\": \"Candidate\",\n  \"contactDetailsCity\": \"Dallas\",\n  \"contactDetailsPhone\": \"555-111-2222\",\n  \"employeeNumber\": \"EMP{{$randomInt}}\",\n  \"employeeType\": 2,\n  \"userName\": \"appraiser.candidate.{{$randomInt}}\",\n  \"password\": \"SecurePassword123\",\n  \"email\": \"appraiser.candidate.{{$randomInt}}@company.com\",\n  \"roleName\": \"APPRAISER\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"employees"
+							]
+						},
+						"description": "**ADMIN ONLY**: Attempts to create an APPRAISER employee.\n\n**Expected Behavior:**\n- If admin's company type is LENDER or BROKER, this should be rejected.\n- If admin's company type is APPRAISAL, this may succeed.\n\n**Authentication Required**: Bearer JWT token with ROLE_ADMIN"
+					},
+					"response": []
+				},
+				{
 					"name": "Create Employee (Admin Only) - Auto-Generated Email",
 					"event": [
 						{
@@ -728,7 +771,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Acme Corporation\",\n  \"companyCode\": \"ACME001\",\n  \"email\": \"info@acmecorp.com\",\n  \"phone\": \"555-0100\",\n  \"website\": \"https://www.acmecorp.com\",\n  \"addressLine1\": \"123 Business Street\",\n  \"addressLine2\": \"Suite 100\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"USA\",\n  \"postalCode\": \"10001\",\n  \"taxId\": \"12-3456789\",\n  \"registrationNumber\": \"REG-2024-001\",\n  \"description\": \"Leading technology solutions provider\",\n  \"status\": \"ACTIVE\"\n}"
+							"raw": "{\n  \"name\": \"Acme Corporation\",\n  \"companyCode\": \"ACME001\",\n  \"companyType\": \"APPRAISAL\",\n  \"email\": \"info@acmecorp.com\",\n  \"phone\": \"555-0100\",\n  \"website\": \"https://www.acmecorp.com\",\n  \"addressLine1\": \"123 Business Street\",\n  \"addressLine2\": \"Suite 100\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"country\": \"USA\",\n  \"postalCode\": \"10001\",\n  \"taxId\": \"12-3456789\",\n  \"registrationNumber\": \"REG-2024-001\",\n  \"description\": \"Leading technology solutions provider\",\n  \"status\": \"ACTIVE\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/companies",
@@ -757,7 +800,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}"
+							"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyType\": \"APPRAISAL\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/companies/register-with-admin",
@@ -786,7 +829,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}",
+									"raw": "{\n  \"companyName\": \"Test Corporation\",\n  \"companyCode\": \"TEST001\",\n  \"companyType\": \"APPRAISAL\",\n  \"companyEmail\": \"info@test.com\",\n  \"companyPhone\": \"+1-555-123-4567\",\n  \"companyWebsite\": \"https://www.test.com\",\n  \"addressLine1\": \"123 Test Street\",\n  \"addressLine2\": \"Suite 456\",\n  \"city\": \"Test City\",\n  \"state\": \"TX\",\n  \"country\": \"USA\",\n  \"postalCode\": \"12345\",\n  \"taxId\": \"TAX-123-456-789\",\n  \"registrationNumber\": \"REG-2024-TEST\",\n  \"description\": \"Test corporation for demo purposes\",\n  \"adminUsername\": \"test.admin\",\n  \"adminEmail\": \"admin@test.com\",\n  \"adminPassword\": \"TestPass123!\",\n  \"adminFirstName\": \"Test\",\n  \"adminLastName\": \"Admin\",\n  \"adminPhone\": \"+1-555-123-4568\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1261,6 +1304,46 @@
 							]
 						},
 						"description": "Update an existing appraisal. Only the appraiser or admin can modify appraisals."
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Appraiser",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Appraiser assignment response', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appraisals/{{created_appraisal_id}}/assign-appraiser?userId={{appraiser_user_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appraisals",
+								"{{created_appraisal_id}}",
+								"assign-appraiser"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{appraiser_user_id}}"
+								}
+							]
+						},
+						"description": "Assign an appraiser to an appraisal. Requires the user to have APPRAISER role, belong to an APPRAISAL company, and be in the lender's preferred list."
 					},
 					"response": []
 				},

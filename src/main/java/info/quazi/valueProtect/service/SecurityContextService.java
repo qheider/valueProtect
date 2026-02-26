@@ -52,6 +52,12 @@ public class SecurityContextService {
                 .anyMatch(role -> "ADMIN".equalsIgnoreCase(role.getName()));
     }
 
+    public boolean isCurrentUserLender() {
+        User currentUser = getCurrentUser();
+        return currentUser.getRoles().stream()
+                .anyMatch(role -> "LENDER".equalsIgnoreCase(role.getName()));
+    }
+
     public boolean hasAccessToCompanyData(Long companyId) {
         Long currentCompanyId = getCurrentCompanyId();
         return currentCompanyId.equals(companyId);

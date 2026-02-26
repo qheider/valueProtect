@@ -14,6 +14,8 @@ public class AppraisalDto {
     private String propertyId;
     private String appraiserId;
     private String appraiserName;
+    private String lenderId;
+    private String lenderName;
     private LocalDate effectiveDate;
     private LocalDate reportDate;
     private BigDecimal appraisedValue;
@@ -66,6 +68,22 @@ public class AppraisalDto {
 
     public void setAppraiserName(String appraiserName) {
         this.appraiserName = appraiserName;
+    }
+
+    public String getLenderId() {
+        return lenderId;
+    }
+
+    public void setLenderId(String lenderId) {
+        this.lenderId = lenderId;
+    }
+
+    public String getLenderName() {
+        return lenderName;
+    }
+
+    public void setLenderName(String lenderName) {
+        this.lenderName = lenderName;
     }
 
     public LocalDate getEffectiveDate() {

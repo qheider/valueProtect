@@ -4,6 +4,7 @@ import info.quazi.valueProtect.dto.CreateEmployeeRequest;
 import info.quazi.valueProtect.dto.EmployeeDto;
 import info.quazi.valueProtect.entity.Company;
 import info.quazi.valueProtect.entity.Employee;
+import info.quazi.valueProtect.entity.RoleName;
 import info.quazi.valueProtect.entity.User;
 import info.quazi.valueProtect.repository.CompanyRepository;
 import info.quazi.valueProtect.repository.EmployeeRepository;
@@ -35,6 +36,16 @@ public class EmployeeService {
     @Transactional
     public EmployeeDto createEmployee(CreateEmployeeRequest request) {
         Employee employee = request.toEntity();
+        Company company = null;
+
+        if (request.getCompanyId() != null) {
+            Long companyId = request.getCompanyId();
+            if (companyId != null) {
+                company = companyRepository.findById(companyId)
+                    .orElseThrow(() -> new RuntimeException("Company not found with id: " + companyId));
+                employee.setCompany(company);
+            }
+        }
         
         User user = null;
         
@@ -56,24 +67,14 @@ public class EmployeeService {
             }
             
             // Default role if not specified
-            String roleName = request.getRoleName() != null ? request.getRoleName() : "EMPLOYEE";
+            String roleName = request.getRoleName() != null ? request.getRoleName() : RoleName.EMPLOYEE.name();
             
             // Create the user account
-            user = userService.createUser(request.getUserName(), email, request.getPassword(), roleName);
+            user = userService.createUser(request.getUserName(), email, request.getPassword(), roleName, company);
         }
         
         if (user != null) {
             employee.setUser(user);
-        }
-        
-        // Set company if companyId is provided (optional)
-        if (request.getCompanyId() != null) {
-            Long companyId = request.getCompanyId();
-            if (companyId != null) {
-                Company company = companyRepository.findById(companyId)
-                    .orElseThrow(() -> new RuntimeException("Company not found with id: " + companyId));
-                employee.setCompany(company);
-            }
         }
         
         if (employee.getArchived() == null) {
@@ -91,7 +92,8 @@ public class EmployeeService {
         
         // Check if user has admin role
         boolean isAdmin = authenticatedUser.getRoles().stream()
-            .anyMatch(role -> "ROLE_ADMIN".equalsIgnoreCase(role.getName()) || "ADMIN".equalsIgnoreCase(role.getName()));
+            .anyMatch(role -> ("ROLE_" + RoleName.ADMIN.name()).equalsIgnoreCase(role.getName())
+                    || RoleName.ADMIN.name().equalsIgnoreCase(role.getName()));
         
         if (!isAdmin) {
             throw new RuntimeException("Access denied. Only admin users can create employees.");
@@ -134,12 +136,13 @@ public class EmployeeService {
             
             // Default role if not specified (employees should not have admin role by default)
             String roleName = request.getRoleName();
-            if (roleName == null || "ROLE_ADMIN".equalsIgnoreCase(roleName) || "ADMIN".equalsIgnoreCase(roleName)) {
-                roleName = "ROLE_EMPLOYEE";
+            if (roleName == null || ("ROLE_" + RoleName.ADMIN.name()).equalsIgnoreCase(roleName)
+                    || RoleName.ADMIN.name().equalsIgnoreCase(roleName)) {
+                roleName = RoleName.EMPLOYEE.name();
             }
             
             // Create the user account
-            user = userService.createUser(request.getUserName(), email, request.getPassword(), roleName);
+            user = userService.createUser(request.getUserName(), email, request.getPassword(), roleName, adminCompany);
         }
         
         if (user != null) {
@@ -168,13 +171,22 @@ public class EmployeeService {
     }
 
     @Transactional(readOnly = true)
+    public EmployeeDto getCurrentEmployee() {
+        User authenticatedUser = getAuthenticatedUser();
+        Employee employee = employeeRepository.findByUser(authenticatedUser)
+            .orElseThrow(() -> new RuntimeException("No employee record found for authenticated user"));
+        return EmployeeDto.fromEntity(employee);
+    }
+
+    @Transactional(readOnly = true)
     public List<EmployeeDto> getEmployeesByCompany(Long companyId) {
         // Get authenticated user
         User authenticatedUser = getAuthenticatedUser();
         
         // Check if user has admin role
         boolean isAdmin = authenticatedUser.getRoles().stream()
-            .anyMatch(role -> "ROLE_ADMIN".equalsIgnoreCase(role.getName()) || "ADMIN".equalsIgnoreCase(role.getName()));
+            .anyMatch(role -> ("ROLE_" + RoleName.ADMIN.name()).equalsIgnoreCase(role.getName())
+                    || RoleName.ADMIN.name().equalsIgnoreCase(role.getName()));
         
         if (!isAdmin) {
             throw new RuntimeException("Access denied. Only admin users can view employees by company.");

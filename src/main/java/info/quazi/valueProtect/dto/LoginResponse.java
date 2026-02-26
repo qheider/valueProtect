@@ -1,11 +1,15 @@
 package info.quazi.valueProtect.dto;
 
+import java.util.List;
+
 public class LoginResponse {
     private String token;
     private String message;
     private String username;
     private String email;
     private Long userId;
+    private Long employeeId;
+    private List<String> roles;
     
     public LoginResponse() {}
     
@@ -20,6 +24,16 @@ public class LoginResponse {
         this.username = username;
         this.email = email;
         this.userId = userId;
+    }
+    
+    public LoginResponse(String token, String message, String username, String email, Long userId, Long employeeId, List<String> roles) {
+        this.token = token;
+        this.message = message;
+        this.username = username;
+        this.email = email;
+        this.userId = userId;
+        this.employeeId = employeeId;
+        this.roles = roles;
     }
     
     public String getToken() {
@@ -60,5 +74,21 @@ public class LoginResponse {
     
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+    
+    public Long getEmployeeId() {
+        return employeeId;
+    }
+    
+    public void setEmployeeId(Long employeeId) {
+        this.employeeId = employeeId;
+    }
+    
+    public List<String> getRoles() {
+        return roles;
+    }
+    
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
     }
 }
