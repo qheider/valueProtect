@@ -230,8 +230,8 @@ public class AppraisalService {
             // Admin can see all company appraisals
             appraisals = appraisalRepository.findByCompanyId(companyId);
         } else if (isLender) {
-            // Lender can see appraisals assigned to them
-            appraisals = appraisalRepository.findByLenderIdAndCompanyId(Long.parseLong(currentEmployeeId), companyId);
+            // Lender can see all appraisals for their lender company
+            appraisals = appraisalRepository.findByLenderCompanyId(companyId);
         } else {
             // Regular user can only see their own appraisals as appraiser
             appraisals = appraisalRepository.findByAppraiserIdAndCompanyId(Long.parseLong(currentEmployeeId), companyId);
