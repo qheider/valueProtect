@@ -27,7 +27,6 @@ public class AppraisalService {
     private final AppraisalDocumentRepository appraisalDocumentRepository;
     private final EmployeeRepository employeeRepository;
     private final CompanyRepository companyRepository;
-    private final UserRepository userRepository;
     private final SecurityContextService securityContextService;
     private final FileUploadService fileUploadService;
 
@@ -37,7 +36,6 @@ public class AppraisalService {
                            AppraisalDocumentRepository appraisalDocumentRepository,
                            EmployeeRepository employeeRepository,
                            CompanyRepository companyRepository,
-                           UserRepository userRepository,
                            SecurityContextService securityContextService,
                            FileUploadService fileUploadService) {
         this.appraisalRepository = appraisalRepository;
@@ -46,7 +44,6 @@ public class AppraisalService {
         this.appraisalDocumentRepository = appraisalDocumentRepository;
         this.employeeRepository = employeeRepository;
         this.companyRepository = companyRepository;
-        this.userRepository = userRepository;
         this.securityContextService = securityContextService;
         this.fileUploadService = fileUploadService;
     }
@@ -545,7 +542,7 @@ public class AppraisalService {
             dto.setAppraiserId(String.valueOf(appraisal.getAppraiser().getId()));
             dto.setAppraiserName(appraisal.getAppraiser().getFirstName() + " " + appraisal.getAppraiser().getLastName());
             if (appraisal.getAppraiser().getCompany() != null) {
-                dto.setAppraiserCompanyName(appraisal.getAppraiser().getCompany().getCompanyName());
+                dto.setAppraiserCompanyName(appraisal.getAppraiser().getCompany().getName());
             }
         }
         
@@ -554,10 +551,10 @@ public class AppraisalService {
             dto.setLenderId(String.valueOf(appraisal.getLenderEmployee().getId()));
             dto.setLenderName(appraisal.getLenderEmployee().getFirstName() + " " + appraisal.getLenderEmployee().getLastName());
             if (appraisal.getLenderEmployee().getCompany() != null) {
-                dto.setLenderCompanyName(appraisal.getLenderEmployee().getCompany().getCompanyName());
+                dto.setLenderCompanyName(appraisal.getLenderEmployee().getCompany().getName());
             }
         } else if (appraisal.getLenderCompany() != null) {
-            dto.setLenderCompanyName(appraisal.getLenderCompany().getCompanyName());
+            dto.setLenderCompanyName(appraisal.getLenderCompany().getName());
         }
         
         dto.setEffectiveDate(appraisal.getEffectiveDate());
