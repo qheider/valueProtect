@@ -544,12 +544,20 @@ public class AppraisalService {
         if (appraisal.getAppraiser() != null) {
             dto.setAppraiserId(String.valueOf(appraisal.getAppraiser().getId()));
             dto.setAppraiserName(appraisal.getAppraiser().getFirstName() + " " + appraisal.getAppraiser().getLastName());
+            if (appraisal.getAppraiser().getCompany() != null) {
+                dto.setAppraiserCompanyName(appraisal.getAppraiser().getCompany().getCompanyName());
+            }
         }
         
         // Set lender ID and name
         if (appraisal.getLenderEmployee() != null) {
             dto.setLenderId(String.valueOf(appraisal.getLenderEmployee().getId()));
             dto.setLenderName(appraisal.getLenderEmployee().getFirstName() + " " + appraisal.getLenderEmployee().getLastName());
+            if (appraisal.getLenderEmployee().getCompany() != null) {
+                dto.setLenderCompanyName(appraisal.getLenderEmployee().getCompany().getCompanyName());
+            }
+        } else if (appraisal.getLenderCompany() != null) {
+            dto.setLenderCompanyName(appraisal.getLenderCompany().getCompanyName());
         }
         
         dto.setEffectiveDate(appraisal.getEffectiveDate());

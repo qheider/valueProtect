@@ -2,6 +2,9 @@ package info.quazi.valueProtect.dto;
 
 import info.quazi.valueProtect.entity.Employee;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class EmployeeDto {
 
     private Long id;
@@ -20,6 +23,7 @@ public class EmployeeDto {
     private String companyName;
     private String userName;
     private String email;
+    private List<String> roles;
 
     public static EmployeeDto fromEntity(Employee employee) {
         if (employee == null) {
@@ -42,6 +46,9 @@ public class EmployeeDto {
         dto.setCompanyName(employee.getCompany() != null ? employee.getCompany().getName() : null);
         dto.setUserName(employee.getUser() != null ? employee.getUser().getUserName() : null);
         dto.setEmail(employee.getUser() != null ? employee.getUser().getEmail() : null);
+        dto.setRoles(employee.getUser() != null && employee.getUser().getRoles() != null
+            ? employee.getUser().getRoles().stream().map(role -> role.getName()).collect(Collectors.toList())
+            : null);
         return dto;
     }
 
@@ -171,5 +178,13 @@ public class EmployeeDto {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public List<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
     }
 }
