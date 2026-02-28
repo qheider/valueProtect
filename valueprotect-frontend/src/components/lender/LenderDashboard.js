@@ -83,6 +83,38 @@ const LenderDashboard = () => {
     }
   };
 
+  const getMimeTypeFromFileName = (fileName) => {
+    const extension = (fileName || '').split('.').pop()?.toLowerCase();
+    const mimeMap = {
+      pdf: 'application/pdf',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+
+    return mimeMap[extension] || 'application/octet-stream';
+  };
+
+  const buildDocumentBlob = (response, fileName) => {
+    const serverType = response?.headers?.['content-type'];
+    const fallbackType = getMimeTypeFromFileName(fileName);
+    const resolvedType = serverType && serverType !== 'application/octet-stream'
+      ? serverType
+      : fallbackType;
+
+    if (response?.data instanceof Blob) {
+      return response.data.type ? response.data : new Blob([response.data], { type: resolvedType });
+    }
+
+    return new Blob([response?.data], { type: resolvedType });
+  };
+
   const handleDownloadDocument = async (docItem) => {
     if (!docItem?.documentId) {
       return;
@@ -90,8 +122,8 @@ const LenderDashboard = () => {
 
     try {
       const response = await appraisalService.downloadDocumentById(docItem.documentId);
-
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const fileBlob = buildDocumentBlob(response, docItem.fileName);
+      const blobUrl = window.URL.createObjectURL(fileBlob);
       const anchor = document.createElement('a');
       anchor.href = blobUrl;
       anchor.setAttribute('download', docItem.fileName || 'document');
@@ -111,8 +143,8 @@ const LenderDashboard = () => {
 
     try {
       const response = await appraisalService.downloadDocumentById(docItem.documentId);
-
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const fileBlob = buildDocumentBlob(response, docItem.fileName);
+      const blobUrl = window.URL.createObjectURL(fileBlob);
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     } catch (err) {
