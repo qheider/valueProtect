@@ -168,4 +168,8 @@ public class FileUploadService {
             return 0;
         }
     }
+
+    public Path resolveFilePath(String fileUrl) {
+        return getFilePathFromUrl(fileUrl);
+    }
 }

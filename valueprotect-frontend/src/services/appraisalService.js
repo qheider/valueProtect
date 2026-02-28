@@ -49,6 +49,12 @@ export const appraisalService = {
       responseType: 'blob'
     }),
 
+  // Download appraisal document by document ID
+  downloadDocumentById: (documentId) =>
+    apiClient.get(`/appraisals/documents/${documentId}/download`, {
+      responseType: 'blob'
+    }),
+
   // Delete document
   deleteDocument: (documentId) => 
     apiClient.delete(`/appraisals/documents/${documentId}`)

@@ -4,6 +4,7 @@ import info.quazi.valueProtect.dto.*;
 import info.quazi.valueProtect.entity.AppraisalDocument.DocumentType;
 import info.quazi.valueProtect.exception.UnauthorizedAppraiserAssignmentException;
 import info.quazi.valueProtect.service.AppraisalService;
+import info.quazi.valueProtect.service.FileUploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -24,8 +25,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/appraisals")
@@ -34,9 +36,12 @@ import java.util.List;
 public class AppraisalController {
 
     private final AppraisalService appraisalService;
+    private final FileUploadService fileUploadService;
 
-    public AppraisalController(AppraisalService appraisalService) {
+    public AppraisalController(AppraisalService appraisalService,
+                               FileUploadService fileUploadService) {
         this.appraisalService = appraisalService;
+        this.fileUploadService = fileUploadService;
     }
 
     @PostMapping
@@ -193,9 +198,19 @@ public class AppraisalController {
         try {
             // Verify access to appraisal first
             appraisalService.getAppraisal(appraisalId);
-            
-            // Construct file path
-            Path filePath = Paths.get("uploads/appraisal-documents", appraisalId, filename);
+
+            // Resolve document from DB for this appraisal, then use stored file URL to locate actual file
+            List<AppraisalDocumentDto> documents = appraisalService.getAppraisalDocuments(appraisalId);
+            Optional<AppraisalDocumentDto> matchedDocument = documents.stream()
+                    .filter(doc -> isDocumentMatch(doc, filename))
+                    .findFirst();
+
+            if (matchedDocument.isEmpty() || matchedDocument.get().getFileUrl() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            AppraisalDocumentDto document = matchedDocument.get();
+            Path filePath = fileUploadService.resolveFilePath(document.getFileUrl());
             @SuppressWarnings("null")
             Resource resource = new UrlResource(filePath.toUri());
             
@@ -211,12 +226,103 @@ public class AppraisalController {
             
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + safeDownloadName(document, filename) + "\"")
                     .body(resource);
                     
         } catch (IOException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/documents/{documentId}/download")
+    @Operation(
+        summary = "Download appraisal document by document ID",
+        description = "Download a document using its document ID. This avoids filename/path mismatch issues."
+    )
+    @ApiResponse(responseCode = "200", description = "File downloaded successfully")
+    @ApiResponse(responseCode = "404", description = "File not found or access denied")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('LENDER') or hasRole('APPRAISER')")
+    public ResponseEntity<Resource> downloadDocumentById(
+            @PathVariable @Parameter(description = "Document ID") String documentId) {
+
+        try {
+            AppraisalDocumentDto document = appraisalService.getDocumentForDownload(documentId);
+            if (document.getFileUrl() == null || document.getFileUrl().isBlank()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Path filePath = fileUploadService.resolveFilePath(document.getFileUrl());
+            @SuppressWarnings("null")
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            String fallbackName = extractFilenameFromUrl(document.getFileUrl());
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + safeDownloadName(document, fallbackName) + "\"")
+                    .body(resource);
+
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    private boolean isDocumentMatch(AppraisalDocumentDto document, String requestedFilename) {
+        if (document == null) {
+            return false;
+        }
+
+        String normalizedRequested = normalizeFilename(requestedFilename);
+        String normalizedOriginal = normalizeFilename(document.getFileName());
+        String normalizedStored = normalizeFilename(extractFilenameFromUrl(document.getFileUrl()));
+
+        return normalizedRequested.equals(normalizedOriginal) || normalizedRequested.equals(normalizedStored);
+    }
+
+    private String safeDownloadName(AppraisalDocumentDto document, String fallbackName) {
+        if (document != null && document.getFileName() != null && !document.getFileName().isBlank()) {
+            return document.getFileName();
+        }
+        return fallbackName;
+    }
+
+    private String extractFilenameFromUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            return null;
+        }
+
+        String normalized = fileUrl;
+        int queryStart = normalized.indexOf('?');
+        if (queryStart >= 0) {
+            normalized = normalized.substring(0, queryStart);
+        }
+
+        String[] parts = normalized.split("/");
+        if (parts.length == 0) {
+            return null;
+        }
+        return parts[parts.length - 1];
+    }
+
+    private String normalizeFilename(String filename) {
+        if (filename == null) {
+            return "";
+        }
+
+        String withoutQuery = filename.split("\\?")[0];
+        String[] segments = withoutQuery.split("/");
+        return Arrays.stream(segments)
+                .reduce((first, second) -> second)
+                .orElse(withoutQuery);
     }
 
     @DeleteMapping("/documents/{documentId}")

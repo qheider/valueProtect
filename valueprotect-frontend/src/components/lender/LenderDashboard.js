@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Navbar from '../common/Navbar';
+import DocumentListDialog from '../common/DocumentListDialog';
 import AppraisalList from './AppraisalList';
 import CreateAppraisalForm from './CreateAppraisalForm';
 import AppraisalDetailsDialog from './AppraisalDetailsDialog';
@@ -25,7 +26,11 @@ const LenderDashboard = () => {
   const [error, setError] = useState('');
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
+  const [openDocumentsDialog, setOpenDocumentsDialog] = useState(false);
   const [selectedAppraisal, setSelectedAppraisal] = useState(null);
+  const [selectedDocumentsAppraisal, setSelectedDocumentsAppraisal] = useState(null);
+  const [documents, setDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -64,13 +69,61 @@ const LenderDashboard = () => {
   };
 
   const handleDownloadDocuments = async (appraisal) => {
+    setSelectedDocumentsAppraisal(appraisal);
+    setOpenDocumentsDialog(true);
+    setDocumentsLoading(true);
     try {
       const response = await appraisalService.getAppraisalDocuments(appraisal.appraisalId);
-      console.log('Documents:', response.data);
-      // TODO: Implement document download functionality
+      setDocuments(response.data || []);
     } catch (err) {
-      console.error('Failed to load documents:', err);
+      setDocuments([]);
+      setError(err.response?.data?.message || 'Failed to load documents');
+    } finally {
+      setDocumentsLoading(false);
     }
+  };
+
+  const handleDownloadDocument = async (docItem) => {
+    if (!docItem?.documentId) {
+      return;
+    }
+
+    try {
+      const response = await appraisalService.downloadDocumentById(docItem.documentId);
+
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const anchor = document.createElement('a');
+      anchor.href = blobUrl;
+      anchor.setAttribute('download', docItem.fileName || 'document');
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to download document');
+    }
+  };
+
+  const handleOpenDocument = async (docItem) => {
+    if (!docItem?.documentId) {
+      return;
+    }
+
+    try {
+      const response = await appraisalService.downloadDocumentById(docItem.documentId);
+
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to open document');
+    }
+  };
+
+  const closeDocumentsDialog = () => {
+    setOpenDocumentsDialog(false);
+    setSelectedDocumentsAppraisal(null);
+    setDocuments([]);
   };
 
   return (
@@ -149,6 +202,15 @@ const LenderDashboard = () => {
           open={openDetailsDialog}
           onClose={() => setOpenDetailsDialog(false)}
           appraisal={selectedAppraisal}
+        />
+
+        <DocumentListDialog
+          open={openDocumentsDialog}
+          onClose={closeDocumentsDialog}
+          documents={documents}
+          loading={documentsLoading}
+          onOpenDocument={handleOpenDocument}
+          onDownloadDocument={handleDownloadDocument}
         />
       </Container>
     </>

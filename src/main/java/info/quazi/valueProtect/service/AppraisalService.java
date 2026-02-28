@@ -324,6 +324,18 @@ public class AppraisalService {
                 .collect(Collectors.toList());
     }
 
+            @Transactional(readOnly = true)
+            public AppraisalDocumentDto getDocumentForDownload(String documentId) {
+            AppraisalDocument document = appraisalDocumentRepository.findByDocumentId(documentId)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+            Long companyId = securityContextService.getCurrentCompanyId();
+            appraisalRepository.findByAppraisalIdAndCompanyId(document.getAppraisalId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found or access denied"));
+
+            return convertToDocumentDto(document);
+            }
+
     public void deleteDocument(String documentId) {
         Long companyId = securityContextService.getCurrentCompanyId();
         AppraisalDocument document = appraisalDocumentRepository.findByDocumentIdAndCompanyId(documentId, companyId)
