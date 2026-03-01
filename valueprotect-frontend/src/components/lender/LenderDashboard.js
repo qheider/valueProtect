@@ -68,6 +68,13 @@ const LenderDashboard = () => {
     setOpenDetailsDialog(true);
   };
 
+  const handleCloseDetailsDialog = () => {
+    setOpenDetailsDialog(false);
+    setSelectedAppraisal(null);
+    // Refresh appraisals to get updated document counts
+    setRefreshKey(prev => prev + 1);
+  };
+
   const handleDownloadDocuments = async (appraisal) => {
     setSelectedDocumentsAppraisal(appraisal);
     setOpenDocumentsDialog(true);
@@ -117,11 +124,18 @@ const LenderDashboard = () => {
 
   const handleDownloadDocument = async (docItem) => {
     if (!docItem?.documentId) {
+      setError('Document ID is missing');
       return;
     }
 
     try {
+      console.log('Downloading document:', docItem.documentId, docItem.fileName);
       const response = await appraisalService.downloadDocumentById(docItem.documentId);
+      
+      if (!response || !response.data) {
+        throw new Error('No document data received');
+      }
+      
       const fileBlob = buildDocumentBlob(response, docItem.fileName);
       const blobUrl = window.URL.createObjectURL(fileBlob);
       const anchor = document.createElement('a');
@@ -132,23 +146,38 @@ const LenderDashboard = () => {
       anchor.remove();
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to download document');
+      console.error('Download error:', err);
+      const errorMsg = err.response?.status === 404 
+        ? 'Document file not found on server' 
+        : err.response?.data?.message || err.message || 'Failed to download document';
+      setError(errorMsg);
     }
   };
 
   const handleOpenDocument = async (docItem) => {
     if (!docItem?.documentId) {
+      setError('Document ID is missing');
       return;
     }
 
     try {
+      console.log('Opening document:', docItem.documentId, docItem.fileName);
       const response = await appraisalService.downloadDocumentById(docItem.documentId);
+      
+      if (!response || !response.data) {
+        throw new Error('No document data received');
+      }
+      
       const fileBlob = buildDocumentBlob(response, docItem.fileName);
       const blobUrl = window.URL.createObjectURL(fileBlob);
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to open document');
+      console.error('Open document error:', err);
+      const errorMsg = err.response?.status === 404 
+        ? 'Document file not found on server' 
+        : err.response?.data?.message || err.message || 'Failed to open document';
+      setError(errorMsg);
     }
   };
 
@@ -232,7 +261,7 @@ const LenderDashboard = () => {
 
         <AppraisalDetailsDialog
           open={openDetailsDialog}
-          onClose={() => setOpenDetailsDialog(false)}
+          onClose={handleCloseDetailsDialog}
           appraisal={selectedAppraisal}
         />
 

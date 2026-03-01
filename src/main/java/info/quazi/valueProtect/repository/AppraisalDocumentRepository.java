@@ -26,6 +26,14 @@ public interface AppraisalDocumentRepository extends JpaRepository<AppraisalDocu
     Optional<AppraisalDocument> findByDocumentIdAndCompanyId(@Param("documentId") String documentId, 
                                                             @Param("companyId") Long companyId);
     
+    // Security method with broader access - allows access if user is from appraiser company OR lender company
+    @Query("SELECT d FROM AppraisalDocument d " +
+           "JOIN Appraisal a ON d.appraisalId = a.appraisalId " +
+           "WHERE d.documentId = :documentId AND " +
+           "(a.appraiser.company.id = :companyId OR a.lenderCompany.id = :companyId)")
+    Optional<AppraisalDocument> findByDocumentIdWithAccess(@Param("documentId") String documentId, 
+                                                          @Param("companyId") Long companyId);
+    
     void deleteByAppraisalId(String appraisalId);
     
     @Query("SELECT COUNT(d) FROM AppraisalDocument d WHERE d.appraisalId = :appraisalId")

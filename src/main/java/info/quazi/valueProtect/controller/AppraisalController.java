@@ -12,6 +12,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -35,6 +37,7 @@ import java.util.Optional;
 @SecurityRequirement(name = "bearerAuth")
 public class AppraisalController {
 
+    private static final Logger log = LoggerFactory.getLogger(AppraisalController.class);
     private final AppraisalService appraisalService;
     private final FileUploadService fileUploadService;
 
@@ -161,10 +164,27 @@ public class AppraisalController {
             @RequestParam("documentType") @Parameter(description = "Type of document") DocumentType documentType) {
         
         try {
+            log.info("Received document upload request for appraisal: {}, file: {}, type: {}", 
+                     appraisalId, file.getOriginalFilename(), documentType);
+            
+            if (file.isEmpty()) {
+                throw new IllegalArgumentException("File cannot be empty");
+            }
+            
             AppraisalDocumentDto document = appraisalService.uploadDocument(appraisalId, file, documentType);
+            log.info("Document upload successful for appraisal: {}, document ID: {}", 
+                     appraisalId, document.getDocumentId());
+            
             return new ResponseEntity<>(document, HttpStatus.CREATED);
+        } catch (IllegalArgumentException | SecurityException e) {
+            log.warn("Client error during document upload: {}", e.getMessage());
+            throw new RuntimeException(e.getMessage(), e);
         } catch (IOException e) {
+            log.error("File upload failed for appraisal {}: {}", appraisalId, e.getMessage(), e);
             throw new RuntimeException("File upload failed: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Unexpected error during document upload for appraisal {}: {}", appraisalId, e.getMessage(), e);
+            throw new RuntimeException("Document upload failed due to server error: " + e.getMessage(), e);
         }
     }
 
@@ -245,17 +265,25 @@ public class AppraisalController {
     public ResponseEntity<Resource> downloadDocumentById(
             @PathVariable @Parameter(description = "Document ID") String documentId) {
 
+        log.info("Document download requested - Document ID: {}", documentId);
+        
         try {
             AppraisalDocumentDto document = appraisalService.getDocumentForDownload(documentId);
+            log.debug("Document found: {}, FileURL: {}", document.getFileName(), document.getFileUrl());
+            
             if (document.getFileUrl() == null || document.getFileUrl().isBlank()) {
+                log.warn("Document {} has no file URL", documentId);
                 return ResponseEntity.notFound().build();
             }
 
             Path filePath = fileUploadService.resolveFilePath(document.getFileUrl());
+            log.debug("Resolved file path: {}", filePath.toAbsolutePath());
+            
             @SuppressWarnings("null")
             Resource resource = new UrlResource(filePath.toUri());
 
             if (!resource.exists() || !resource.isReadable()) {
+                log.warn("File not found or not readable: {}", filePath.toAbsolutePath());
                 return ResponseEntity.notFound().build();
             }
 
@@ -265,6 +293,9 @@ public class AppraisalController {
             }
 
             String fallbackName = extractFilenameFromUrl(document.getFileUrl());
+            log.info("Document download successful - File: {}, Size: {} bytes", 
+                    fallbackName, resource.contentLength());
+                    
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -272,6 +303,12 @@ public class AppraisalController {
                     .body(resource);
 
         } catch (IOException e) {
+            log.error("IO error during document download - Document ID: {}, Error: {}", 
+                      documentId, e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            log.error("Unexpected error during document download - Document ID: {}, Error: {}", 
+                      documentId, e.getMessage(), e);
             return ResponseEntity.notFound().build();
         }
     }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -9,7 +9,15 @@ import {
   Box,
   Grid,
   Divider,
-  Chip
+  Chip,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { formatDateForDisplay, formatCurrency } from '../../utils/helpers';
 import StatusBadge from '../common/StatusBadge';
@@ -18,11 +26,97 @@ import HomeIcon from '@mui/icons-material/Home';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PersonIcon from '@mui/icons-material/Person';
+import DescriptionIcon from '@mui/icons-material/Description';
+import DownloadIcon from '@mui/icons-material/Download';
+import FolderIcon from '@mui/icons-material/Folder';
+import { appraisalService } from '../../services/appraisalService';
 
 const AppraisalDetailsDialog = ({ open, onClose, appraisal }) => {
+  const [documents, setDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsError, setDocumentsError] = useState('');
+
+  // Load documents when dialog opens and appraisal changes
+  useEffect(() => {
+    if (open && appraisal?.appraisalId) {
+      loadDocuments();
+    }
+    // Clear documents when dialog closes
+    if (!open) {
+      setDocuments([]);
+      setDocumentsError('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, appraisal?.appraisalId]);
+
+  // Handle null appraisal case after hooks are defined
   if (!appraisal) return null;
 
   const property = appraisal.property || {};
+
+  const loadDocuments = async () => {
+    if (!appraisal.appraisalId) return;
+    
+    setDocumentsLoading(true);
+    setDocumentsError('');
+    try {
+      const response = await appraisalService.getAppraisalDocuments(appraisal.appraisalId);
+      setDocuments(response.data || []);
+    } catch (err) {
+      setDocumentsError(err.response?.data?.message || 'Failed to load documents');
+      setDocuments([]);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  const handleDownloadDocument = async (document) => {
+    if (!document?.documentId) {
+      console.error('Document ID is missing');
+      return;
+    }
+
+    try {
+      console.log('Downloading document:', document.documentId, document.fileName);
+      const response = await appraisalService.downloadDocumentById(document.documentId);
+      
+      if (!response || !response.data) {
+        throw new Error('No document data received');
+      }
+      
+      // Create blob and download
+      const contentType = response.headers?.['content-type'] || 'application/octet-stream';
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', document.originalFileName || document.fileName || 'document');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download document:', err);
+      const errorMsg = err.response?.status === 404 
+        ? 'Document file not found on server' 
+        : err.response?.data?.message || err.message || 'Failed to download document';
+      // You could set a local error state here if needed
+      alert(errorMsg); // Temporary solution for error display
+    }
+  };
+
+  const getDocumentTypeLabel = (type) => {
+    const labels = {
+      'APPRAISAL_REPORT': 'Appraisal Report',
+      'TITLE_DEED': 'Title Deed',
+      'FLOOR_PLAN': 'Floor Plan',
+      'PLAT_MAP': 'Plat Map',
+      'PROPERTY_PHOTO': 'Property Photo',
+      'TAX_RECORD': 'Tax Record',
+      'OTHER': 'Other'
+    };
+    return labels[type] || type;
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -189,16 +283,79 @@ const AppraisalDetailsDialog = ({ open, onClose, appraisal }) => {
               </Grid>
             )}
             
-            {appraisal.documentCount > 0 && (
+            {(appraisal.documentCount > 0 || documents.length > 0) && (
               <Grid item xs={12}>
                 <Chip 
-                  label={`${appraisal.documentCount} Document(s) Attached`}
+                  label={`${Math.max(appraisal.documentCount || 0, documents.length)} Document(s) Attached`}
                   color="info"
                   variant="outlined"
                 />
               </Grid>
             )}
           </Grid>
+        </Box>
+
+        {/* Supporting Documents */}
+        <Box mb={3}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FolderIcon color="primary" />
+            Supporting Documents ({documents.length})
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          
+          {documentsLoading ? (
+            <Box display="flex" justifyContent="center" py={2}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : documentsError ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {documentsError}
+            </Alert>
+          ) : documents.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
+              No supporting documents found
+            </Typography>
+          ) : (
+            <List dense>
+              {documents.map((document, index) => (
+                <ListItem key={document.documentId || index} divider>
+                  <ListItemIcon>
+                    <DescriptionIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={document.originalFileName || document.fileName}
+                    secondary={
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Type: {getDocumentTypeLabel(document.documentType)}
+                        </Typography>
+                        {document.uploadedAt && (
+                          <Typography variant="body2" color="text.secondary">
+                            Uploaded: {formatDateForDisplay(document.uploadedAt)}
+                          </Typography>
+                        )}
+                        {document.fileSize && (
+                          <Typography variant="body2" color="text.secondary">
+                            Size: {(document.fileSize / 1024 / 1024).toFixed(2)} MB
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                  <ListItemSecondaryAction>
+                    <IconButton
+                      edge="end"
+                      onClick={() => handleDownloadDocument(document)}
+                      title="Download document"
+                      size="small"
+                    >
+                      <DownloadIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
+            </List>
+          )}
         </Box>
 
         {/* Additional Details */}
