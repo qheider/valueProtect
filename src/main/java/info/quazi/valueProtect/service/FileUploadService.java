@@ -30,13 +30,19 @@ public class FileUploadService {
         log.info("Starting file upload for appraisal: {}, file: {}, type: {}", 
                 appraisalId, file.getOriginalFilename(), documentType);
         
-        // Validate file
+        // Validate file first
         validateFile(file);
         log.debug("File validation passed");
         
-        // Create directory structure
-        Path uploadPath = createDirectoryStructure(appraisalId);
-        log.info("Upload directory created/verified: {}", uploadPath.toAbsolutePath());
+        // Create directory structure with proper error handling
+        Path uploadPath;
+        try {
+            uploadPath = createDirectoryStructure(appraisalId);
+            log.info("Upload directory created/verified: {}", uploadPath.toAbsolutePath());
+        } catch (IOException e) {
+            log.error("Failed to create directory structure for appraisal {}: {}", appraisalId, e.getMessage());
+            throw new IOException("Cannot create upload directory: " + e.getMessage(), e);
+        }
         
         // Generate unique filename
         String originalFilename = file.getOriginalFilename();
@@ -44,10 +50,21 @@ public class FileUploadService {
         String uniqueFilename = generateUniqueFilename(documentType, fileExtension);
         log.debug("Generated unique filename: {}", uniqueFilename);
         
-        // Save file
+        // Save file with better error handling
         Path filePath = uploadPath.resolve(uniqueFilename);
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-        log.info("File saved successfully to: {}", filePath.toAbsolutePath());
+        try {
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("File saved successfully to: {}", filePath.toAbsolutePath());
+        } catch (IOException e) {
+            log.error("Failed to save file for appraisal {}: {}", appraisalId, e.getMessage());
+            throw new IOException("Cannot save file: " + e.getMessage(), e);
+        }
+        
+        // Verify file was actually written
+        if (!Files.exists(filePath) || Files.size(filePath) == 0) {
+            log.error("File verification failed - file does not exist or is empty: {}", filePath);
+            throw new IOException("File upload verification failed");
+        }
         
         // Return file URL
         String fileUrl = generateFileUrl(appraisalId, uniqueFilename);
@@ -108,10 +125,34 @@ public class FileUploadService {
     private Path createDirectoryStructure(String appraisalId) throws IOException {
         // Create directory: uploads/appraisal-documents/{appraisalId}/
         Path basePath = Paths.get(uploadDirectory);
+        
+        // Ensure base upload directory exists
+        if (!Files.exists(basePath)) {
+            try {
+                Files.createDirectories(basePath);
+                log.info("Created base upload directory: {}", basePath.toAbsolutePath());
+            } catch (IOException e) {
+                log.error("Failed to create base upload directory {}: {}", basePath, e.getMessage());
+                throw new IOException("Cannot create base upload directory: " + basePath, e);
+            }
+        }
+        
         Path appraisalPath = basePath.resolve(appraisalId);
         
         if (!Files.exists(appraisalPath)) {
-            Files.createDirectories(appraisalPath);
+            try {
+                Files.createDirectories(appraisalPath);
+                log.info("Created appraisal directory: {}", appraisalPath.toAbsolutePath());
+            } catch (IOException e) {
+                log.error("Failed to create appraisal directory {}: {}", appraisalPath, e.getMessage());
+                throw new IOException("Cannot create appraisal directory: " + appraisalPath, e);
+            }
+        }
+        
+        // Verify directory is writable
+        if (!Files.isWritable(appraisalPath)) {
+            log.error("Appraisal directory is not writable: {}", appraisalPath);
+            throw new IOException("Upload directory is not writable: " + appraisalPath);
         }
         
         return appraisalPath;
@@ -167,5 +208,9 @@ public class FileUploadService {
         } catch (IOException e) {
             return 0;
         }
+    }
+
+    public Path resolveFilePath(String fileUrl) {
+        return getFilePathFromUrl(fileUrl);
     }
 }

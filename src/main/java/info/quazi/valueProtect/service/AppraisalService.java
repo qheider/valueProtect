@@ -27,7 +27,6 @@ public class AppraisalService {
     private final AppraisalDocumentRepository appraisalDocumentRepository;
     private final EmployeeRepository employeeRepository;
     private final CompanyRepository companyRepository;
-    private final UserRepository userRepository;
     private final SecurityContextService securityContextService;
     private final FileUploadService fileUploadService;
 
@@ -37,7 +36,6 @@ public class AppraisalService {
                            AppraisalDocumentRepository appraisalDocumentRepository,
                            EmployeeRepository employeeRepository,
                            CompanyRepository companyRepository,
-                           UserRepository userRepository,
                            SecurityContextService securityContextService,
                            FileUploadService fileUploadService) {
         this.appraisalRepository = appraisalRepository;
@@ -46,7 +44,6 @@ public class AppraisalService {
         this.appraisalDocumentRepository = appraisalDocumentRepository;
         this.employeeRepository = employeeRepository;
         this.companyRepository = companyRepository;
-        this.userRepository = userRepository;
         this.securityContextService = securityContextService;
         this.fileUploadService = fileUploadService;
     }
@@ -212,10 +209,14 @@ public class AppraisalService {
 
     @Transactional(readOnly = true)
     public AppraisalDto getAppraisal(String appraisalId) {
+        // Verify access - allow if user is from appraiser company OR lender company
         Long companyId = securityContextService.getCurrentCompanyId();
-        Appraisal appraisal = appraisalRepository.findByAppraisalIdAndCompanyId(appraisalId, companyId)
+        log.debug("Checking appraisal access for {} by company {}", appraisalId, companyId);
+        
+        Appraisal appraisal = appraisalRepository.findByAppraisalIdWithAccess(appraisalId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Appraisal not found or access denied"));
         
+        log.debug("Access granted for appraisal {}", appraisalId);
         return convertToDto(appraisal);
     }
 
@@ -264,6 +265,7 @@ public class AppraisalService {
         appraisalRepository.delete(nonNullAppraisal);
     }
 
+    @Transactional
     public AppraisalDocumentDto uploadDocument(String appraisalId, 
                                              MultipartFile file, 
                                              AppraisalDocument.DocumentType documentType) throws IOException {
@@ -273,69 +275,123 @@ public class AppraisalService {
         log.info("Document Type: {}", documentType);
         log.info("File Size: {} bytes", file.getSize());
         
-        // Verify access to appraisal
-        Long companyId = securityContextService.getCurrentCompanyId();
-        log.debug("Current company ID: {}", companyId);
-        
-        Appraisal appraisal = appraisalRepository.findByAppraisalIdAndCompanyId(appraisalId, companyId)
-                .orElseThrow(() -> new IllegalArgumentException("Appraisal not found or access denied"));
-        log.debug("Appraisal found and access verified");
-        
-        if (!canModifyAppraisal(appraisal)) {
-            log.warn("Access denied for user to modify appraisal: {}", appraisalId);
-            throw new SecurityException("Access denied: You can only upload documents to your own appraisals");
+        try {
+            // Verify access to appraisal
+            Long companyId = securityContextService.getCurrentCompanyId();
+            log.debug("Current company ID: {}", companyId);
+            
+            // Use broader access check to allow both lender and appraiser companies to upload documents
+            Appraisal appraisal = appraisalRepository.findByAppraisalIdWithAccess(appraisalId, companyId)
+                    .orElseThrow(() -> new IllegalArgumentException("Appraisal not found or access denied"));
+            log.debug("Appraisal found and access verified");
+            
+            // Note: Removing canModifyAppraisal check because both lender and appraiser should be able to upload supporting documents
+            // The broader access check above already ensures the user has legitimate access to the appraisal
+            
+            // Create document record FIRST (before file upload to ensure rollback on failure)
+            String documentId = UUID.randomUUID().toString();
+            log.debug("Creating document record with ID: {}", documentId);
+            
+            AppraisalDocument document = new AppraisalDocument(
+                    documentId, 
+                    appraisalId, 
+                    documentType
+            );
+            document.setFileName(file.getOriginalFilename());
+            
+            // Upload file to filesystem
+            log.info("Uploading file to filesystem...");
+            String fileUrl;
+            try {
+                fileUrl = fileUploadService.uploadFile(file, appraisalId, documentType.getDisplayName());
+                log.info("File uploaded successfully, URL: {}", fileUrl);
+            } catch (IOException e) {
+                log.error("File upload failed for appraisal {}: {}", appraisalId, e.getMessage());
+                throw new RuntimeException("File upload failed: " + e.getMessage(), e);
+            }
+            
+            document.setFileUrl(fileUrl);
+            
+            // Save document record to database
+            log.info("Saving document record to database...");
+            AppraisalDocument savedDocument;
+            try {
+                savedDocument = appraisalDocumentRepository.save(document);
+                log.info("Document saved successfully with ID: {}", savedDocument.getDocumentId());
+            } catch (Exception e) {
+                log.error("Database save failed for appraisal {}: {}", appraisalId, e.getMessage());
+                // Try to clean up the uploaded file
+                try {
+                    fileUploadService.deleteFile(fileUrl);
+                } catch (Exception deleteException) {
+                    log.warn("Failed to clean up uploaded file after database error: {}", deleteException.getMessage());
+                }
+                throw new RuntimeException("Failed to save document record: " + e.getMessage(), e);
+            }
+            
+            log.info("=== Document upload completed ===");
+            return convertToDocumentDto(savedDocument);
+            
+        } catch (Exception e) {
+            log.error("Document upload failed for appraisal {}: {}", appraisalId, e.getMessage(), e);
+            throw e; // Re-throw to ensure transaction rollback
         }
-        
-        // Upload file
-        log.info("Uploading file to filesystem...");
-        String fileUrl = fileUploadService.uploadFile(file, appraisalId, documentType.getDisplayName());
-        log.info("File uploaded successfully, URL: {}", fileUrl);
-        
-        // Create document record
-        String documentId = UUID.randomUUID().toString();
-        log.debug("Creating document record with ID: {}", documentId);
-        
-        AppraisalDocument document = new AppraisalDocument(
-                documentId, 
-                appraisalId, 
-                documentType
-        );
-        document.setFileName(file.getOriginalFilename());
-        document.setFileUrl(fileUrl);
-        
-        log.info("Saving document record to database...");
-        AppraisalDocument savedDocument = appraisalDocumentRepository.save(document);
-        log.info("Document saved successfully with ID: {}", savedDocument.getDocumentId());
-        log.info("=== Document upload completed ===");
-        
-        return convertToDocumentDto(savedDocument);
     }
 
     @Transactional(readOnly = true)
     public List<AppraisalDocumentDto> getAppraisalDocuments(String appraisalId) {
-        // Verify access
+        // Verify access - allow if user is from appraiser company OR lender company
         Long companyId = securityContextService.getCurrentCompanyId();
-        appraisalRepository.findByAppraisalIdAndCompanyId(appraisalId, companyId)
+        log.debug("Checking document access for appraisal {} by company {}", appraisalId, companyId);
+        
+        appraisalRepository.findByAppraisalIdWithAccess(appraisalId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Appraisal not found or access denied"));
         
+        log.debug("Access granted for appraisal {} documents", appraisalId);
         List<AppraisalDocument> documents = appraisalDocumentRepository.findByAppraisalId(appraisalId);
+        log.info("Retrieved {} documents for appraisal {}", documents.size(), appraisalId);
+        
         return documents.stream()
                 .map(this::convertToDocumentDto)
                 .collect(Collectors.toList());
     }
 
+            @Transactional(readOnly = true)
+            public AppraisalDocumentDto getDocumentForDownload(String documentId) {
+            AppraisalDocument document = appraisalDocumentRepository.findByDocumentId(documentId)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+            Long companyId = securityContextService.getCurrentCompanyId();
+            // Use the broader access check to allow both lender and appraiser companies to download documents
+            appraisalRepository.findByAppraisalIdWithAccess(document.getAppraisalId(), companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found or access denied"));
+
+            return convertToDocumentDto(document);
+            }
+
     public void deleteDocument(String documentId) {
         Long companyId = securityContextService.getCurrentCompanyId();
-        AppraisalDocument document = appraisalDocumentRepository.findByDocumentIdAndCompanyId(documentId, companyId)
+        log.debug("Attempting to delete document {} by company {}", documentId, companyId);
+        
+        // Use broader access to find document (lender should be able to see it exists)
+        AppraisalDocument document = appraisalDocumentRepository.findByDocumentIdWithAccess(documentId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found or access denied"));
         
-        // Check if user can modify the appraisal
+        // Get the associated appraisal
         Appraisal appraisal = appraisalRepository.findByAppraisalId(document.getAppraisalId())
                 .orElseThrow(() -> new IllegalArgumentException("Associated appraisal not found"));
         
-        if (!canModifyAppraisal(appraisal)) {
-            throw new SecurityException("Access denied: You can only delete documents from your own appraisals");
+        // Restrict document deletion to lenders only (as per requirement)
+        String currentEmployeeId = securityContextService.getCurrentEmployeeId();
+        boolean isAdmin = securityContextService.isCurrentUserAdmin();
+        boolean isLenderAssigned = appraisal.getLenderEmployee() != null && 
+                                  currentEmployeeId.equals(String.valueOf(appraisal.getLenderEmployee().getId()));
+        
+        if (!isAdmin && !isLenderAssigned) {
+            throw new SecurityException("Access denied: Only lenders assigned to this appraisal can delete documents");
         }
+        
+        log.info("Deleting document {} for appraisal {}", documentId, document.getAppraisalId());
         
         // Delete file from filesystem
         fileUploadService.deleteFile(document.getFileUrl());
@@ -532,12 +588,20 @@ public class AppraisalService {
         if (appraisal.getAppraiser() != null) {
             dto.setAppraiserId(String.valueOf(appraisal.getAppraiser().getId()));
             dto.setAppraiserName(appraisal.getAppraiser().getFirstName() + " " + appraisal.getAppraiser().getLastName());
+            if (appraisal.getAppraiser().getCompany() != null) {
+                dto.setAppraiserCompanyName(appraisal.getAppraiser().getCompany().getName());
+            }
         }
         
         // Set lender ID and name
         if (appraisal.getLenderEmployee() != null) {
             dto.setLenderId(String.valueOf(appraisal.getLenderEmployee().getId()));
             dto.setLenderName(appraisal.getLenderEmployee().getFirstName() + " " + appraisal.getLenderEmployee().getLastName());
+            if (appraisal.getLenderEmployee().getCompany() != null) {
+                dto.setLenderCompanyName(appraisal.getLenderEmployee().getCompany().getName());
+            }
+        } else if (appraisal.getLenderCompany() != null) {
+            dto.setLenderCompanyName(appraisal.getLenderCompany().getName());
         }
         
         dto.setEffectiveDate(appraisal.getEffectiveDate());

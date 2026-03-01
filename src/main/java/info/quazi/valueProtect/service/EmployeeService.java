@@ -179,6 +179,15 @@ public class EmployeeService {
     }
 
     @Transactional(readOnly = true)
+    public EmployeeDto getEmployeeById(Long employeeId) {        if (employeeId == null) {
+            throw new IllegalArgumentException("Employee ID cannot be null");
+        }
+                Employee employee = employeeRepository.findById(employeeId)
+            .orElseThrow(() -> new RuntimeException("Employee not found with id: " + employeeId));
+        return EmployeeDto.fromEntity(employee);
+    }
+
+    @Transactional(readOnly = true)
     public List<EmployeeDto> getEmployeesByCompany(Long companyId) {
         // Get authenticated user
         User authenticatedUser = getAuthenticatedUser();

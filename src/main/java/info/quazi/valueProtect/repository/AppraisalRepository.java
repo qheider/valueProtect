@@ -47,6 +47,12 @@ public interface AppraisalRepository extends JpaRepository<Appraisal, String> {
     // Find appraisals by lender employee
     @Query("SELECT a FROM Appraisal a WHERE a.lenderEmployee.id = :lenderId")
     List<Appraisal> findByLenderId(@Param("lenderId") Long lenderId);
+    
+    // Security method to verify appraisal access - allows access if user is from appraiser company OR lender company
+    @Query("SELECT a FROM Appraisal a WHERE a.appraisalId = :appraisalId AND " +
+           "(a.appraiser.company.id = :companyId OR a.lenderCompany.id = :companyId)")
+    Optional<Appraisal> findByAppraisalIdWithAccess(@Param("appraisalId") String appraisalId, 
+                                                    @Param("companyId") Long companyId);
 
     // Find appraisals by lender company - for lender dashboard scope
     @Query("SELECT a FROM Appraisal a WHERE a.lenderCompany.id = :companyId")

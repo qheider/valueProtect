@@ -14,14 +14,38 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { appraisalService } from '../../services/appraisalService';
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS, APPRAISAL_STATUS } from '../../utils/constants';
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS, APPRAISAL_STATUS, USER_ROLES } from '../../utils/constants';
+import { useAuth } from '../../context/AuthContext';
 
 const UploadDocumentForm = ({ appraisal, onSuccess, onCancel }) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [documentType, setDocumentType] = useState(DOCUMENT_TYPES.OTHER);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Get user role from the user object
+  const userRole = user?.roles?.[0];
+
+  // Filter document types based on user role
+  const getAvailableDocumentTypes = () => {
+    if (userRole === USER_ROLES.APPRAISER) {
+      // Appraisers can only upload appraisal reports
+      return { [DOCUMENT_TYPES.APPRAISAL_REPORT]: DOCUMENT_TYPES.APPRAISAL_REPORT };
+    }
+    // Lenders and admins can upload all document types
+    return DOCUMENT_TYPES;
+  };
+
+  const availableDocumentTypes = getAvailableDocumentTypes();
+
+  // Set default document type based on available options
+  React.useEffect(() => {
+    if (userRole === USER_ROLES.APPRAISER) {
+      setDocumentType(DOCUMENT_TYPES.APPRAISAL_REPORT);
+    }
+  }, [userRole]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -118,7 +142,7 @@ const UploadDocumentForm = ({ appraisal, onSuccess, onCancel }) => {
             disabled={loading}
             sx={{ mb: 2 }}
           >
-            {Object.entries(DOCUMENT_TYPES).map(([key, value]) => (
+            {Object.entries(availableDocumentTypes).map(([key, value]) => (
               <MenuItem key={value} value={value}>
                 {DOCUMENT_TYPE_LABELS[value]}
               </MenuItem>

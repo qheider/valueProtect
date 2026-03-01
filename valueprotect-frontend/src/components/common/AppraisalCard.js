@@ -1,20 +1,83 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
   Typography,
   Box,
   Button,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress
 } from '@mui/material';
 import { formatDateForDisplay, formatCurrency } from '../../utils/helpers';
 import StatusBadge from './StatusBadge';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import { employeeService } from '../../services/employeeService';
 
 const AppraisalCard = ({ appraisal, actions }) => {
   const property = appraisal.property || {};
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+
+  const getRolesDisplay = (roles) => {
+    if (!roles || roles.length === 0) {
+      return 'N/A';
+    }
+
+    return roles
+      .map((role) => role.replace('ROLE_', ''))
+      .join(', ');
+  };
+
+  const openProfileDialog = async (role, fallbackName, employeeId, fallbackCompanyName) => {
+    setSelectedProfile({
+      role,
+      name: fallbackName,
+      employeeId,
+      companyName: fallbackCompanyName,
+      roles: role ? [role.toUpperCase()] : []
+    });
+
+    if (!employeeId) {
+      return;
+    }
+
+    setLoadingProfile(true);
+    try {
+      const response = await employeeService.getEmployeeById(employeeId);
+      const employee = response.data;
+      const fullName = [employee?.firstName, employee?.lastName].filter(Boolean).join(' ');
+
+      setSelectedProfile({
+        role,
+        name: fullName || fallbackName,
+        username: employee?.userName,
+        email: employee?.email,
+        employeeId: employee?.id ?? employeeId,
+        employeeNumber: employee?.employeeNumber,
+        companyName: employee?.companyName || fallbackCompanyName,
+        city: employee?.contactDetailsCity,
+        phone: employee?.contactDetailsPhone,
+        roles: employee?.roles || (role ? [role.toUpperCase()] : [])
+      });
+    } catch (error) {
+      setSelectedProfile((prev) => ({
+        ...prev,
+        roles: prev?.roles || (role ? [role.toUpperCase()] : [])
+      }));
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const closeProfileDialog = () => {
+    setSelectedProfile(null);
+  };
 
   return (
     <Card sx={{ mb: 2, '&:hover': { boxShadow: 3 }, transition: 'box-shadow 0.3s' }}>
@@ -55,13 +118,41 @@ const AppraisalCard = ({ appraisal, actions }) => {
 
           {appraisal.appraiserName && (
             <Typography variant="body2" color="text.secondary">
-              Appraiser: {appraisal.appraiserName}
+              Appraiser:{' '}
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => openProfileDialog('Appraiser', appraisal.appraiserName, appraisal.appraiserId, appraisal.appraiserCompanyName)}
+                sx={{
+                  minWidth: 0,
+                  p: 0,
+                  textTransform: 'none',
+                  textDecoration: 'underline',
+                  verticalAlign: 'baseline'
+                }}
+              >
+                {appraisal.appraiserName}
+              </Button>
             </Typography>
           )}
 
           {appraisal.lenderName && (
             <Typography variant="body2" color="text.secondary">
-              Lender: {appraisal.lenderName}
+              Lender:{' '}
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => openProfileDialog('Lender', appraisal.lenderName, appraisal.lenderId, appraisal.lenderCompanyName)}
+                sx={{
+                  minWidth: 0,
+                  p: 0,
+                  textTransform: 'none',
+                  textDecoration: 'underline',
+                  verticalAlign: 'baseline'
+                }}
+              >
+                {appraisal.lenderName}
+              </Button>
             </Typography>
           )}
 
@@ -95,6 +186,32 @@ const AppraisalCard = ({ appraisal, actions }) => {
             ))}
           </Box>
         )}
+
+        <Dialog open={Boolean(selectedProfile)} onClose={closeProfileDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>Employee Profile</DialogTitle>
+          <DialogContent dividers>
+            {loadingProfile ? (
+              <Box display="flex" justifyContent="center" py={2}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : (
+              <Box display="flex" flexDirection="column" gap={1}>
+                <Typography variant="body2"><strong>Name:</strong> {selectedProfile?.name || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>Username:</strong> {selectedProfile?.username || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>Email:</strong> {selectedProfile?.email || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>Employee ID:</strong> {selectedProfile?.employeeId || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>Employee Number:</strong> {selectedProfile?.employeeNumber || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>Company:</strong> {selectedProfile?.companyName || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>City:</strong> {selectedProfile?.city || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>Phone:</strong> {selectedProfile?.phone || 'N/A'}</Typography>
+                <Typography variant="body2"><strong>Role(s):</strong> {getRolesDisplay(selectedProfile?.roles)}</Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeProfileDialog} variant="contained">Close</Button>
+          </DialogActions>
+        </Dialog>
       </CardContent>
     </Card>
   );

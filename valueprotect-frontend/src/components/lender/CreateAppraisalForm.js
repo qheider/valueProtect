@@ -80,12 +80,54 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
-    const newFiles = files.map(file => ({
-      file,
-      documentType: DOCUMENT_TYPES.OTHER,
-      id: Math.random().toString(36).substr(2, 9)
-    }));
-    setSelectedFiles([...selectedFiles, ...newFiles]);
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/jpg'
+    ];
+    const maxSizeMB = 10;
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    
+    const validFiles = [];
+    const errors = [];
+    
+    files.forEach(file => {
+      // Check file size
+      if (file.size > maxSizeBytes) {
+        errors.push(`${file.name}: File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the ${maxSizeMB}MB limit`);
+        return;
+      }
+      
+      // Check file type
+      if (!allowedTypes.includes(file.type)) {
+        errors.push(`${file.name}: File type '${file.type}' is not supported. Please use PDF, Word, Excel, or image files.`);
+        return;
+      }
+      
+      validFiles.push(file);
+    });
+    
+    if (errors.length > 0) {
+      setError(errors.join('\\n'));
+    } else {
+      setError(''); // Clear any previous errors
+    }
+    
+    if (validFiles.length > 0) {
+      const newFiles = validFiles.map(file => ({
+        file,
+        documentType: DOCUMENT_TYPES.OTHER,
+        id: Math.random().toString(36).substr(2, 9)
+      }));
+      setSelectedFiles([...selectedFiles, ...newFiles]);
+    }
+    
     e.target.value = ''; // Reset input
   };
 
@@ -102,6 +144,7 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
   const uploadFiles = async (appraisalId) => {
     if (selectedFiles.length === 0) return;
 
+    console.log(`Starting upload of ${selectedFiles.length} files for appraisal ${appraisalId}`);
     setUploadProgress({ current: 0, total: selectedFiles.length });
     
     const uploadErrors = [];
@@ -109,21 +152,39 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
     for (let i = 0; i < selectedFiles.length; i++) {
       const { file, documentType } = selectedFiles[i];
       try {
-        console.log(`Uploading file ${i + 1}/${selectedFiles.length}:`, file.name, 'Type:', documentType);
-        await appraisalService.uploadDocument(appraisalId, file, documentType);
-        console.log(`Successfully uploaded: ${file.name}`);
+        console.log(`Uploading file ${i + 1}/${selectedFiles.length}:`, {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          documentType: documentType,
+          appraisalId: appraisalId
+        });
+        
+        const response = await appraisalService.uploadDocument(appraisalId, file, documentType);
+        console.log(`Successfully uploaded: ${file.name}`, response.data);
         setUploadProgress({ current: i + 1, total: selectedFiles.length });
       } catch (err) {
         console.error('Failed to upload file:', file.name, err);
-        const errorMsg = err.response?.data?.message || err.message || 'Upload failed';
+        console.error('Error details:', {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          message: err.message
+        });
+        
+        const errorMsg = err.response?.data?.message || err.response?.data || err.message || 'Upload failed';
         uploadErrors.push(`${file.name}: ${errorMsg}`);
         // Continue with other files even if one fails
       }
     }
     
+    console.log('Upload process completed. Errors:', uploadErrors);
+    
     if (uploadErrors.length > 0) {
       console.warn('Some files failed to upload:', uploadErrors);
-      // You could optionally show these errors to the user
+      // Show upload errors to the user
+      const errorMessage = `Some files failed to upload:\n${uploadErrors.join('\n')}`;
+      throw new Error(errorMessage);
     }
   };
 
@@ -179,12 +240,30 @@ const CreateAppraisalForm = ({ onSuccess, onCancel }) => {
       };
 
       // Create appraisal
+      console.log('Creating appraisal with data:', requestData);
       const response = await appraisalService.createAppraisal(requestData);
       const appraisalId = response.data.appraisalId;
+      console.log('Appraisal created successfully:', { appraisalId, response: response.data });
 
       // Upload documents if any selected
-      await uploadFiles(appraisalId);
+      if (selectedFiles.length > 0) {
+        console.log(`Starting document upload for appraisal ${appraisalId} with ${selectedFiles.length} files`);
+        try {
+          await uploadFiles(appraisalId);
+          console.log('All documents uploaded successfully');
+        } catch (uploadError) {
+          // Show upload errors but still consider the flow successful
+          console.warn('Document upload errors:', uploadError.message);
+          setError(`Appraisal created successfully, but some documents failed to upload: ${uploadError.message}`);
+          // Still call onSuccess since appraisal was created
+          setTimeout(() => onSuccess(), 3000); // Give time to read the error
+          return;
+        }
+      } else {
+        console.log('No files selected for upload');
+      }
 
+      console.log('Appraisal creation and document upload completed successfully');
       onSuccess();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create appraisal');

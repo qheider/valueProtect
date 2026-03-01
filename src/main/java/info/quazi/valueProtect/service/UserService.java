@@ -118,6 +118,10 @@ public class UserService {
 
     @Transactional
     public void assignRoleToUser(Long userId, RoleName roleName) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+        
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
