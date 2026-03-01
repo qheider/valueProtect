@@ -280,14 +280,13 @@ public class AppraisalService {
             Long companyId = securityContextService.getCurrentCompanyId();
             log.debug("Current company ID: {}", companyId);
             
-            Appraisal appraisal = appraisalRepository.findByAppraisalIdAndCompanyId(appraisalId, companyId)
+            // Use broader access check to allow both lender and appraiser companies to upload documents
+            Appraisal appraisal = appraisalRepository.findByAppraisalIdWithAccess(appraisalId, companyId)
                     .orElseThrow(() -> new IllegalArgumentException("Appraisal not found or access denied"));
             log.debug("Appraisal found and access verified");
             
-            if (!canModifyAppraisal(appraisal)) {
-                log.warn("Access denied for user to modify appraisal: {}", appraisalId);
-                throw new SecurityException("Access denied: You can only upload documents to your own appraisals");
-            }
+            // Note: Removing canModifyAppraisal check because both lender and appraiser should be able to upload supporting documents
+            // The broader access check above already ensures the user has legitimate access to the appraisal
             
             // Create document record FIRST (before file upload to ensure rollback on failure)
             String documentId = UUID.randomUUID().toString();
