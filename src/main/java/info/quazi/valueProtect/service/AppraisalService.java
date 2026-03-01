@@ -377,12 +377,18 @@ public class AppraisalService {
         AppraisalDocument document = appraisalDocumentRepository.findByDocumentIdWithAccess(documentId, companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found or access denied"));
         
-        // Check if user can modify the appraisal (stricter check for deletion)
+        // Get the associated appraisal
         Appraisal appraisal = appraisalRepository.findByAppraisalId(document.getAppraisalId())
                 .orElseThrow(() -> new IllegalArgumentException("Associated appraisal not found"));
         
-        if (!canModifyAppraisal(appraisal)) {
-            throw new SecurityException("Access denied: You can only delete documents from your own appraisals");
+        // Restrict document deletion to lenders only (as per requirement)
+        String currentEmployeeId = securityContextService.getCurrentEmployeeId();
+        boolean isAdmin = securityContextService.isCurrentUserAdmin();
+        boolean isLenderAssigned = appraisal.getLenderEmployee() != null && 
+                                  currentEmployeeId.equals(String.valueOf(appraisal.getLenderEmployee().getId()));
+        
+        if (!isAdmin && !isLenderAssigned) {
+            throw new SecurityException("Access denied: Only lenders assigned to this appraisal can delete documents");
         }
         
         log.info("Deleting document {} for appraisal {}", documentId, document.getAppraisalId());

@@ -36,9 +36,13 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { appraisalService } from '../../services/appraisalService';
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from '../../utils/constants';
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS, USER_ROLES } from '../../utils/constants';
+import { useAuth } from '../../context/AuthContext';
 
 const AppraisalDetailsDialog = ({ open, onClose, appraisal }) => {
+  const { user } = useAuth();
+  console.log('🔍 DEBUG - Current user in AppraisalDetailsDialog:', user);
+  console.log('🔍 DEBUG - User role:', user?.role);
   const [documents, setDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [documentsError, setDocumentsError] = useState('');
@@ -118,6 +122,38 @@ const AppraisalDetailsDialog = ({ open, onClose, appraisal }) => {
         : err.response?.data?.message || err.message || 'Failed to download document';
       // You could set a local error state here if needed
       alert(errorMsg); // Temporary solution for error display
+    }
+  };
+
+  const handleDeleteDocument = async (documentItem) => {
+    if (!documentItem?.documentId) {
+      console.error('Document ID is missing');
+      return;
+    }
+
+    // Confirm deletion
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${documentItem.fileName || 'this document'}"? This action cannot be undone.`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      console.log('Deleting document:', documentItem.documentId, documentItem.fileName);
+      await appraisalService.deleteDocument(documentItem.documentId);
+      
+      // Reload documents list after successful deletion
+      await loadDocuments();
+      
+      console.log('Document deleted successfully');
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+      const errorMsg = err.response?.status === 404 
+        ? 'Document not found or already deleted' 
+        : err.response?.data?.message || err.message || 'Failed to delete document';
+      alert(errorMsg);
     }
   };
 
@@ -561,14 +597,25 @@ const AppraisalDetailsDialog = ({ open, onClose, appraisal }) => {
                       }
                     />
                     <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleDownloadDocument(documentItem)}
-                        title="Download document"
-                        size="small"
-                      >
-                        <DownloadIcon />
-                      </IconButton>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <IconButton
+                          onClick={() => handleDownloadDocument(documentItem)}
+                          title="Download document"
+                          size="small"
+                        >
+                          <DownloadIcon />
+                        </IconButton>
+                        {user?.roles?.[0] === 'LENDER' && (
+                          <IconButton
+                            onClick={() => handleDeleteDocument(documentItem)}
+                            title="Delete document"
+                            size="small"
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        )}
+                      </Box>
                     </ListItemSecondaryAction>
                   </ListItem>
                 ))}
