@@ -15,7 +15,6 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,8 +24,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -230,19 +227,13 @@ public class AppraisalController {
             }
 
             AppraisalDocumentDto document = matchedDocument.get();
-            Path filePath = fileUploadService.resolveFilePath(document.getFileUrl());
-            @SuppressWarnings("null")
-            Resource resource = new UrlResource(filePath.toUri());
+            Resource resource = fileUploadService.resolveResource(document.getFileUrl());
             
             if (!resource.exists() || !resource.isReadable()) {
                 return ResponseEntity.notFound().build();
             }
             
-            // Determine content type
-            String contentType = Files.probeContentType(filePath);
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
+            String contentType = fileUploadService.resolveContentType(document.getFileUrl());
             
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
@@ -276,25 +267,18 @@ public class AppraisalController {
                 return ResponseEntity.notFound().build();
             }
 
-            Path filePath = fileUploadService.resolveFilePath(document.getFileUrl());
-            log.debug("Resolved file path: {}", filePath.toAbsolutePath());
-            
-            @SuppressWarnings("null")
-            Resource resource = new UrlResource(filePath.toUri());
+            Resource resource = fileUploadService.resolveResource(document.getFileUrl());
+            log.debug("Resolved Azure blob resource for file URL: {}", document.getFileUrl());
 
             if (!resource.exists() || !resource.isReadable()) {
-                log.warn("File not found or not readable: {}", filePath.toAbsolutePath());
+                log.warn("Blob not found or not readable for file URL: {}", document.getFileUrl());
                 return ResponseEntity.notFound().build();
             }
 
-            String contentType = Files.probeContentType(filePath);
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
+            String contentType = fileUploadService.resolveContentType(document.getFileUrl());
 
             String fallbackName = extractFilenameFromUrl(document.getFileUrl());
-            log.info("Document download successful - File: {}, Size: {} bytes", 
-                    fallbackName, resource.contentLength());
+            log.info("Document download successful - File: {}", fallbackName);
                     
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))

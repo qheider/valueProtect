@@ -1,16 +1,25 @@
 package info.quazi.valueProtect.service;
 
+import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobHttpHeaders;
+import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.BlobInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -20,74 +29,97 @@ public class FileUploadService {
 
     private static final Logger log = LoggerFactory.getLogger(FileUploadService.class);
 
-    @Value("${app.file.upload.directory:uploads/appraisal-documents}")
-    private String uploadDirectory;
+    @Value("${app.azure.storage.account-name}")
+    private String accountName;
 
-    @Value("${app.file.base.url:http://localhost:8080}")
-    private String baseUrl;
+    @Value("${app.azure.storage.container-url}")
+    private String containerUrl;
+
+    @Value("${app.azure.storage.connection-string:}")
+    private String connectionString;
+
+    @Value("${app.azure.storage.account-key:}")
+    private String accountKey;
+
+    private BlobContainerClient blobContainerClient;
+
+    private BlobContainerClient getBlobContainerClient() {
+        if (blobContainerClient != null) {
+            return blobContainerClient;
+        }
+
+        String containerName = extractContainerName(containerUrl);
+        if (containerName == null || containerName.isBlank()) {
+            throw new IllegalStateException("Invalid Azure container URL: " + containerUrl);
+        }
+
+        if (connectionString != null && !connectionString.isBlank()) {
+            blobContainerClient = new BlobContainerClientBuilder()
+                    .connectionString(connectionString)
+                    .containerName(containerName)
+                    .buildClient();
+            return blobContainerClient;
+        }
+
+        String endpoint = String.format("https://%s.blob.core.windows.net", accountName);
+
+        if (accountKey != null && !accountKey.isBlank()) {
+            blobContainerClient = new BlobServiceClientBuilder()
+                    .endpoint(endpoint)
+                    .credential(new AzureNamedKeyCredential(accountName, accountKey))
+                    .buildClient()
+                    .getBlobContainerClient(containerName);
+            return blobContainerClient;
+        }
+
+        blobContainerClient = new BlobServiceClientBuilder()
+                .endpoint(endpoint)
+                .credential(new DefaultAzureCredentialBuilder().build())
+                .buildClient()
+                .getBlobContainerClient(containerName);
+        return blobContainerClient;
+    }
 
     public String uploadFile(MultipartFile file, String appraisalId, String documentType) throws IOException {
-        log.info("Starting file upload for appraisal: {}, file: {}, type: {}", 
+        log.info("Starting Azure file upload for appraisal: {}, file: {}, type: {}",
                 appraisalId, file.getOriginalFilename(), documentType);
         
-        // Validate file first
         validateFile(file);
-        log.debug("File validation passed");
+        BlobContainerClient containerClient = getBlobContainerClient();
         
-        // Create directory structure with proper error handling
-        Path uploadPath;
-        try {
-            uploadPath = createDirectoryStructure(appraisalId);
-            log.info("Upload directory created/verified: {}", uploadPath.toAbsolutePath());
-        } catch (IOException e) {
-            log.error("Failed to create directory structure for appraisal {}: {}", appraisalId, e.getMessage());
-            throw new IOException("Cannot create upload directory: " + e.getMessage(), e);
-        }
-        
-        // Generate unique filename
         String originalFilename = file.getOriginalFilename();
         String fileExtension = getFileExtension(originalFilename);
         String uniqueFilename = generateUniqueFilename(documentType, fileExtension);
-        log.debug("Generated unique filename: {}", uniqueFilename);
+        String blobName = appraisalId + "/" + uniqueFilename;
         
-        // Save file with better error handling
-        Path filePath = uploadPath.resolve(uniqueFilename);
         try {
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("File saved successfully to: {}", filePath.toAbsolutePath());
-        } catch (IOException e) {
-            log.error("Failed to save file for appraisal {}: {}", appraisalId, e.getMessage());
-            throw new IOException("Cannot save file: " + e.getMessage(), e);
+            BlobHttpHeaders headers = new BlobHttpHeaders()
+                    .setContentType(file.getContentType() != null ? file.getContentType() : "application/octet-stream");
+
+            containerClient.getBlobClient(blobName)
+                    .upload(file.getInputStream(), file.getSize(), true);
+            containerClient.getBlobClient(blobName).setHttpHeaders(headers);
+
+            String fileUrl = containerClient.getBlobClient(blobName).getBlobUrl();
+            log.info("File uploaded successfully to Azure blob: {}", fileUrl);
+            return fileUrl;
+        } catch (BlobStorageException e) {
+            log.error("Azure upload failed for blob {}: {}", blobName, e.getMessage());
+            throw new IOException("Azure upload failed: " + e.getMessage(), e);
         }
-        
-        // Verify file was actually written
-        if (!Files.exists(filePath) || Files.size(filePath) == 0) {
-            log.error("File verification failed - file does not exist or is empty: {}", filePath);
-            throw new IOException("File upload verification failed");
-        }
-        
-        // Return file URL
-        String fileUrl = generateFileUrl(appraisalId, uniqueFilename);
-        log.debug("Generated file URL: {}", fileUrl);
-        return fileUrl;
     }
 
     public void deleteFile(String fileUrl) {
         try {
-            Path filePath = getFilePathFromUrl(fileUrl);
-            if (Files.exists(filePath)) {
-                Files.delete(filePath);
-            }
-        } catch (IOException e) {
-            // Log error but don't throw exception
-            System.err.println("Error deleting file: " + fileUrl + " - " + e.getMessage());
+            getBlobContainerClient().getBlobClient(extractBlobName(fileUrl)).deleteIfExists();
+        } catch (Exception e) {
+            log.warn("Error deleting Azure blob {}: {}", fileUrl, e.getMessage());
         }
     }
 
     public boolean fileExists(String fileUrl) {
         try {
-            Path filePath = getFilePathFromUrl(fileUrl);
-            return Files.exists(filePath);
+            return getBlobContainerClient().getBlobClient(extractBlobName(fileUrl)).exists();
         } catch (Exception e) {
             return false;
         }
@@ -122,42 +154,6 @@ public class FileUploadService {
         );
     }
 
-    private Path createDirectoryStructure(String appraisalId) throws IOException {
-        // Create directory: uploads/appraisal-documents/{appraisalId}/
-        Path basePath = Paths.get(uploadDirectory);
-        
-        // Ensure base upload directory exists
-        if (!Files.exists(basePath)) {
-            try {
-                Files.createDirectories(basePath);
-                log.info("Created base upload directory: {}", basePath.toAbsolutePath());
-            } catch (IOException e) {
-                log.error("Failed to create base upload directory {}: {}", basePath, e.getMessage());
-                throw new IOException("Cannot create base upload directory: " + basePath, e);
-            }
-        }
-        
-        Path appraisalPath = basePath.resolve(appraisalId);
-        
-        if (!Files.exists(appraisalPath)) {
-            try {
-                Files.createDirectories(appraisalPath);
-                log.info("Created appraisal directory: {}", appraisalPath.toAbsolutePath());
-            } catch (IOException e) {
-                log.error("Failed to create appraisal directory {}: {}", appraisalPath, e.getMessage());
-                throw new IOException("Cannot create appraisal directory: " + appraisalPath, e);
-            }
-        }
-        
-        // Verify directory is writable
-        if (!Files.isWritable(appraisalPath)) {
-            log.error("Appraisal directory is not writable: {}", appraisalPath);
-            throw new IOException("Upload directory is not writable: " + appraisalPath);
-        }
-        
-        return appraisalPath;
-    }
-
     private String getFileExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
             return "";
@@ -175,42 +171,78 @@ public class FileUploadService {
             extension);
     }
 
-    private String generateFileUrl(String appraisalId, String filename) {
-        return String.format("%s/api/appraisals/%s/documents/download/%s", 
-            baseUrl, appraisalId, filename);
-    }
-
-    private Path getFilePathFromUrl(String fileUrl) {
-        // Extract filename from URL
-        String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-        
-        // Extract appraisal ID from URL pattern: .../appraisals/{appraisalId}/documents/download/{filename}
-        String[] urlParts = fileUrl.split("/");
-        String appraisalId = null;
-        for (int i = 0; i < urlParts.length - 3; i++) {
-            if ("appraisals".equals(urlParts[i]) && "documents".equals(urlParts[i + 2])) {
-                appraisalId = urlParts[i + 1];
-                break;
-            }
-        }
-        
-        if (appraisalId == null) {
-            throw new IllegalArgumentException("Invalid file URL format");
-        }
-        
-        return Paths.get(uploadDirectory, appraisalId, filename);
-    }
-
     public long getFileSize(String fileUrl) {
         try {
-            Path filePath = getFilePathFromUrl(fileUrl);
-            return Files.size(filePath);
-        } catch (IOException e) {
+            BlobProperties properties = getBlobContainerClient()
+                    .getBlobClient(extractBlobName(fileUrl))
+                    .getProperties();
+            return properties.getBlobSize();
+        } catch (Exception e) {
             return 0;
         }
     }
 
-    public Path resolveFilePath(String fileUrl) {
-        return getFilePathFromUrl(fileUrl);
+    public Resource resolveResource(String fileUrl) throws IOException {
+        try {
+            BlobInputStream inputStream = getBlobContainerClient()
+                    .getBlobClient(extractBlobName(fileUrl))
+                    .openInputStream();
+            return new InputStreamResource(inputStream);
+        } catch (BlobStorageException e) {
+            throw new IOException("Unable to read Azure blob: " + e.getMessage(), e);
+        }
+    }
+
+    public String resolveContentType(String fileUrl) {
+        try {
+            String contentType = getBlobContainerClient()
+                    .getBlobClient(extractBlobName(fileUrl))
+                    .getProperties()
+                    .getContentType();
+            return (contentType == null || contentType.isBlank()) ? "application/octet-stream" : contentType;
+        } catch (Exception e) {
+            return "application/octet-stream";
+        }
+    }
+
+    private String extractContainerName(String fullContainerUrl) {
+        if (fullContainerUrl == null || fullContainerUrl.isBlank()) {
+            return null;
+        }
+
+        try {
+            URI uri = new URI(fullContainerUrl);
+            String path = uri.getPath();
+            if (path == null || path.isBlank() || "/".equals(path)) {
+                return null;
+            }
+            return path.startsWith("/") ? path.substring(1) : path;
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid Azure container URL", e);
+        }
+    }
+
+    private String extractBlobName(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            throw new IllegalArgumentException("File URL cannot be blank");
+        }
+
+        String normalizedContainerUrl = containerUrl.endsWith("/") ? containerUrl : containerUrl + "/";
+        if (!fileUrl.startsWith(normalizedContainerUrl)) {
+            try {
+                URI uri = new URI(fileUrl);
+                String containerName = extractContainerName(containerUrl);
+                String path = uri.getPath();
+                String prefix = "/" + containerName + "/";
+                if (path != null && path.startsWith(prefix)) {
+                    return path.substring(prefix.length());
+                }
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid file URL format", e);
+            }
+            throw new IllegalArgumentException("File URL does not belong to configured Azure container");
+        }
+
+        return fileUrl.substring(normalizedContainerUrl.length());
     }
 }
