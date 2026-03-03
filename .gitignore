@@ -44,3 +44,6 @@ valueprotect-frontend/.env
 
 # Uploaded Files
 uploads/
+
+# Local application config
+src/main/resources/application.properties
