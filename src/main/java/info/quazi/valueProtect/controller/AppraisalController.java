@@ -23,6 +23,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -267,7 +268,10 @@ public class AppraisalController {
                 return ResponseEntity.notFound().build();
             }
 
-            Resource resource = fileUploadService.resolveResource(document.getFileUrl());
+                Resource resource = fileUploadService.resolveResource(
+                    document.getFileUrl(),
+                    document.getAppraisalId(),
+                    document.getFileName());
             log.debug("Resolved Azure blob resource for file URL: {}", document.getFileUrl());
 
             if (!resource.exists() || !resource.isReadable()) {
@@ -275,7 +279,10 @@ public class AppraisalController {
                 return ResponseEntity.notFound().build();
             }
 
-            String contentType = fileUploadService.resolveContentType(document.getFileUrl());
+                String contentType = fileUploadService.resolveContentType(
+                    document.getFileUrl(),
+                    document.getAppraisalId(),
+                    document.getFileName());
 
             String fallbackName = extractFilenameFromUrl(document.getFileUrl());
             log.info("Document download successful - File: {}", fallbackName);
@@ -286,6 +293,10 @@ public class AppraisalController {
                             "attachment; filename=\"" + safeDownloadName(document, fallbackName) + "\"")
                     .body(resource);
 
+        } catch (FileNotFoundException e) {
+            log.warn("Document not found during download - Document ID: {}, Error: {}",
+                    documentId, e.getMessage());
+            return ResponseEntity.notFound().build();
         } catch (IOException e) {
             log.error("IO error during document download - Document ID: {}, Error: {}", 
                       documentId, e.getMessage());
