@@ -13,6 +13,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.UUID;
 
 @Service
@@ -25,6 +27,9 @@ public class FileUploadService {
 
     @Value("${app.file.base.url:http://localhost:8080}")
     private String baseUrl;
+
+        private static final Pattern DOWNLOAD_URL_PATTERN =
+            Pattern.compile(".*/appraisals/([^/]+)/documents/download/([^/]+)$");
 
     public String uploadFile(MultipartFile file, String appraisalId, String documentType) throws IOException {
         log.info("Starting file upload for appraisal: {}, file: {}, type: {}", 
@@ -78,9 +83,9 @@ public class FileUploadService {
             if (Files.exists(filePath)) {
                 Files.delete(filePath);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             // Log error but don't throw exception
-            System.err.println("Error deleting file: " + fileUrl + " - " + e.getMessage());
+            log.warn("Error deleting file {}: {}", fileUrl, e.getMessage());
         }
     }
 
@@ -181,31 +186,42 @@ public class FileUploadService {
     }
 
     private Path getFilePathFromUrl(String fileUrl) {
-        // Extract filename from URL
-        String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-        
-        // Extract appraisal ID from URL pattern: .../appraisals/{appraisalId}/documents/download/{filename}
-        String[] urlParts = fileUrl.split("/");
-        String appraisalId = null;
-        for (int i = 0; i < urlParts.length - 3; i++) {
-            if ("appraisals".equals(urlParts[i]) && "documents".equals(urlParts[i + 2])) {
-                appraisalId = urlParts[i + 1];
-                break;
-            }
-        }
-        
-        if (appraisalId == null) {
+        if (fileUrl == null || fileUrl.isBlank()) {
             throw new IllegalArgumentException("Invalid file URL format");
         }
-        
-        return Paths.get(uploadDirectory, appraisalId, filename);
+
+        String normalized = fileUrl.trim().split("\\?")[0].replace('\\', '/');
+
+        // Primary format: .../appraisals/{appraisalId}/documents/download/{filename}
+        Matcher downloadMatcher = DOWNLOAD_URL_PATTERN.matcher(normalized);
+        if (downloadMatcher.matches()) {
+            String appraisalId = downloadMatcher.group(1);
+            String filename = downloadMatcher.group(2);
+            return Paths.get(uploadDirectory, appraisalId, filename);
+        }
+
+        // Backward-compatible format: uploads/appraisal-documents/{appraisalId}/{filename}
+        String marker = "uploads/appraisal-documents/";
+        int markerIndex = normalized.indexOf(marker);
+        if (markerIndex >= 0) {
+            String relativePath = normalized.substring(markerIndex + marker.length());
+            String[] segments = relativePath.split("/");
+            if (segments.length >= 2) {
+                String appraisalId = segments[0];
+                String filename = segments[segments.length - 1];
+                return Paths.get(uploadDirectory, appraisalId, filename);
+            }
+        }
+
+        throw new IllegalArgumentException("Invalid file URL format");
     }
 
     public long getFileSize(String fileUrl) {
         try {
             Path filePath = getFilePathFromUrl(fileUrl);
             return Files.size(filePath);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            log.debug("Cannot resolve file size for URL {}: {}", fileUrl, e.getMessage());
             return 0;
         }
     }
