@@ -5,6 +5,7 @@ import info.quazi.valueProtect.entity.AppraisalDocument.DocumentType;
 import info.quazi.valueProtect.exception.UnauthorizedAppraiserAssignmentException;
 import info.quazi.valueProtect.service.AppraisalService;
 import info.quazi.valueProtect.service.FileUploadService;
+import info.quazi.valueProtect.service.PdfProcessingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -40,11 +42,17 @@ public class AppraisalController {
     private static final Logger log = LoggerFactory.getLogger(AppraisalController.class);
     private final AppraisalService appraisalService;
     private final FileUploadService fileUploadService;
+    private final PdfProcessingService pdfProcessingService;
+
+    @Value("${app.file.base.url:http://localhost:8080}")
+    private String baseUrl;
 
     public AppraisalController(AppraisalService appraisalService,
-                               FileUploadService fileUploadService) {
+                               FileUploadService fileUploadService,
+                               PdfProcessingService pdfProcessingService) {
         this.appraisalService = appraisalService;
         this.fileUploadService = fileUploadService;
+        this.pdfProcessingService = pdfProcessingService;
     }
 
     @PostMapping
@@ -174,6 +182,20 @@ public class AppraisalController {
             AppraisalDocumentDto document = appraisalService.uploadDocument(appraisalId, file, documentType);
             log.info("Document upload successful for appraisal: {}, document ID: {}", 
                      appraisalId, document.getDocumentId());
+            
+            // Trigger PDF processing for appraisal reports
+            if (documentType == DocumentType.APPRAISAL_REPORT && document.getFileUrl() != null) {
+                try {
+                    String fullPdfUrl = buildFullDocumentUrl(document.getDocumentId());
+                    log.info("Triggering PDF processing for appraisal report: {}, URL: {}", 
+                            appraisalId, fullPdfUrl);
+                    pdfProcessingService.processPdfDocument(fullPdfUrl, appraisalId);
+                } catch (Exception e) {
+                    log.error("Failed to trigger PDF processing for appraisal {}: {}", 
+                            appraisalId, e.getMessage(), e);
+                    // Don't fail the upload if PDF processing fails
+                }
+            }
             
             return new ResponseEntity<>(document, HttpStatus.CREATED);
         } catch (IllegalArgumentException | SecurityException e) {
@@ -323,6 +345,15 @@ public class AppraisalController {
         String normalizedStored = normalizeFilename(extractFilenameFromUrl(document.getFileUrl()));
 
         return normalizedRequested.equals(normalizedOriginal) || normalizedRequested.equals(normalizedStored);
+    }
+
+    /**
+     * Build full URL for accessing a document by document ID
+     * Used for external API calls that need to download the document
+     */
+    private String buildFullDocumentUrl(String documentId) {
+        String cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return cleanBaseUrl + "/api/appraisals/documents/" + documentId + "/download";
     }
 
     private String safeDownloadName(AppraisalDocumentDto document, String fallbackName) {

@@ -46,6 +46,7 @@ public class AppraisalService {
         this.companyRepository = companyRepository;
         this.securityContextService = securityContextService;
         this.fileUploadService = fileUploadService;
+
     }
 
     public AppraisalDto createAppraisal(CreateAppraisalRequest request) {
