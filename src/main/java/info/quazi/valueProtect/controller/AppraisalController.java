@@ -186,7 +186,7 @@ public class AppraisalController {
             // Trigger PDF processing for appraisal reports
             if (documentType == DocumentType.APPRAISAL_REPORT && document.getFileUrl() != null) {
                 try {
-                    String fullPdfUrl = buildFullDocumentUrl(document.getDocumentId());
+                    String fullPdfUrl = buildFullDocumentUrl(appraisalId, document.getFileName());
                     log.info("Triggering PDF processing for appraisal report: {}, URL: {}", 
                             appraisalId, fullPdfUrl);
                     pdfProcessingService.processPdfDocument(fullPdfUrl, appraisalId);
@@ -348,12 +348,12 @@ public class AppraisalController {
     }
 
     /**
-     * Build full URL for accessing a document by document ID
+     * Build full URL for accessing a document by appraisal ID and filename
      * Used for external API calls that need to download the document
      */
-    private String buildFullDocumentUrl(String documentId) {
+    private String buildFullDocumentUrl(String appraisalId, String filename) {
         String cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        return cleanBaseUrl + "/api/appraisals/documents/" + documentId + "/download";
+        return cleanBaseUrl + "/api/appraisals/" + appraisalId + "/documents/download/" + filename;
     }
 
     private String safeDownloadName(AppraisalDocumentDto document, String fallbackName) {

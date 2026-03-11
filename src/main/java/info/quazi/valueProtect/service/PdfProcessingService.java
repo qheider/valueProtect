@@ -60,6 +60,7 @@ public class PdfProcessingService {
 
             // Generate JWT token for authentication
             String jwtToken = jwtUtil.generatePdfProcessingToken();
+            log.debug("Generated JWT token (first 20 chars): {}...", jwtToken.substring(0, Math.min(20, jwtToken.length())));
 
             // Prepare request payload
             Map<String, String> requestBody = new HashMap<>();
@@ -68,8 +69,10 @@ public class PdfProcessingService {
             requestBody.put("output_basename", "appraisal-" + appraisalId);
 
             String jsonBody = objectMapper.writeValueAsString(requestBody);
+            log.debug("Request payload: {}", jsonBody);
 
             // Build HTTP request
+            log.debug("Sending request to: {}", pdfProcessingApiUrl);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(pdfProcessingApiUrl))
                     .header("Content-Type", "application/json")
